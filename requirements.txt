@@ -1,0 +1,2 @@
+pre-commit~=3.5.0
+jinja2-cli~=0.8

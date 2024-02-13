@@ -1,0 +1,294 @@
+{% extends "templates/login.html" %}
+
+{% block title %}PSI AiiDAlab - Login{% endblock %}
+
+<!-- Global site tag (gtag.js) - Google Analytics (comming soon) -->
+
+{% block main %}
+<div class="main-content container">
+  <div class="branding">
+    <div class="logos">
+      <a class="logo" href="https://aiidalab.net" target="_blank">
+        <img src="/hub/static/external/aiidalab-wide-logo.png" alt="AiiDAlab" style="max-height:80px;max-width:100%;">
+      </a>
+      <a class="logo" href="https://psi.ch" target="_blank" style="padding:20px;">
+        <img src="/hub/static/external/psi-old-logo.svg" alt="PSI" style="max-height:100px;max-width:100%;">
+      </a>
+      <a class="logo" href="https://www.psi.ch/en/lms" target="_blank">
+        Laboratory for Materials Simulations (LMS)
+      </a>
+      <a class="logo" href="http://nccr-marvel.ch/" target="_blank">
+        <img class="sponsor" src="/hub/static/external/marvel-cropped-logo.png" alt="NCCR MARVEL" style="max-height:100px;max-width:100%">
+      </a>
+    </div>
+  </div>
+
+  {% block login %}
+  <div class="col-sm-4 left-col">
+    <div id="login-box">
+      <h3 align="center">Login to AiiDAlab</h3>
+      {{ super() }}
+    </div>
+
+    <div id="sponsor">
+        <p>
+        <small>
+            This work is or has been supported by the <a href="http://nccr-marvel.ch">MARVEL National Centre of Competence in Research</a> and funded by the <a href="http://www.snf.ch/en">Swiss National Science Foundation</a>, the MARKETPLACE project funded by <a href="https://ec.europa.eu/programmes/horizon2020/">Horizon 2020</a> under the H2020-NMBP-25-2017 call (Grant No.&nbsp;760173), as well as by the <a href="http://www.max-centre.eu/">MaX European Centre of Excellence</a> funded by the Horizon 2020 EINFRA-5 program, Grant No.&nbsp;676598, and other <a href="https://www.materialscloud.org/home#partners">Materials Cloud partners</a>.
+        </small>
+        </p>
+    </div>
+    <div id="acknowledgement">
+      <p>
+      <small>
+        We kindly ask you to cite the following publication if you use AiiDAlab:
+        <p class="reference">
+            A. V. Yakutovich et al., Comp. Mat. Sci. 188, 110165 (2021) <a href="https://doi.org/10.1016/j.commatsci.2020.110165" target="_blank">DOI:10.1016/j.commatsci.2020.110165</a>
+        </p>
+      </small>
+      </p>
+    </div>
+
+
+    <div class="sponsors row align-items-center justify-content-around flex-wrap"></div>
+  </div>
+  {% endblock login %}
+
+  <div class="container col-sm-7">
+    <h1>Welcome to the AiiDAlab deployment for PSI staff!</h1>
+    <p>This AiiDAlab server is deployed and maintained by the <a href="https://www.psi.ch/en/lms/msd-group" target="_blank">Materials Software and Data Group (MSD)</a> and its aim is to serve PSI staff in facilitating the execution and analysis of DFT simulations.</p>
+
+    <h2>Login to AiiDAlab</h2>
+    <p>
+      The service is available to all PSI staff. Please login with your PSI account.
+    </p>
+
+    <h2 id="gettingstartedwithaiidalab">Getting started with AiiDAlab</h2>
+    <p>
+      <a href="https://aiidalab.net">AiiDAlab</a> is a web environment to run materials simulation online. It is based on <a href="https://jupyter.org/index.html">Jupyter</a> as the web backend, and <a href="https://aiida.net">AiiDA</a> as the workflow engine.
+    </p>
+
+    <p>Some resources to learn AiiDAlab:</p>
+    <ul>
+      <li>
+        <a href="https://aiidalab.readthedocs.io/en/latest/"> Our official documentation</a>, for a more detailed introduction and hands on guide.
+      </li>
+      <li>
+        An <a href="https://www.youtube.com/watch?v=Oqo5buk6Om8">AiiDAlab introduction</a> video for an overview.
+      </li>
+    </ul>
+
+    <h2>Any questions?</h2>
+    <p>Please checkout our <a href="{{base_url}}faq">FAQ</a> page. If you cannot find your question, feel free to <a href="mailto:jusong.yu@psi.ch?subject=[Help]%20AiiDAlab PSI&cc=giovanni.pizzi@psi.ch,xing.wang@psi.ch">send an email to the developers</a>. For technical issues, <a href="https://gitlab.psi.ch/yu_j/aiidalab-psi-deploy/-/issues/new">open an issue on GitLab</a> and we will try to resolve it.</p>
+  </div>
+</div>
+
+{% endblock main %}
+
+{% block stylesheet %}
+{{ super() }}
+<style>
+  .main-content {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .logos {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin: auto 30px;
+    flex-wrap: nowrap;
+  }
+
+  .left-col {
+    margin-top: 20px;
+  }
+
+  .brand {
+    flex-shrink: 2;
+  }
+
+  @media all and (max-width: 500px) {
+    .logos {
+      /* On small screens, we are no longer using row direction but column */
+      /* flex-direction: column; */
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .branding img {
+      justify-content: center;
+      max-width: 100%;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .logos {
+      justify-content: space-around;
+    }
+    .logo {
+      flex-basis: 50%;
+    }
+  }
+
+  @media (max-width: 1400px) {
+    .logos {
+      justify-content: space-around;
+    }
+    .main-content {
+      width: 100%;
+    }
+  }
+
+  @media (min-width: 1401px) {
+    .main-content {
+      width: 1400px;
+    }
+  }
+
+  .sponsors {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+  }
+
+  .sponsors-footer {
+    height: 300px;
+  }
+
+  .sponsor {
+    padding: 10px;
+    max-width: 100%;
+    max-height: 150px;
+  }
+
+  #login-box {
+    border: 1px solid silver;
+    padding: 10px;
+    margin-bottom: 30px;
+    /*   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    -webkit-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    -moz-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); */
+    border-radius: 5px;
+    flex-grow: 2;
+  }
+
+  .body {
+    padding-bottom: 50px;
+  }
+
+  #login-main .auth-form-body {
+    border-color: rgb(0, 124, 186);
+    color: white;
+  }
+
+  #login-main {
+    margin-top: 5%;
+    height: inherit;
+    width: inherit;
+    margin-bottom: 5%;
+  }
+
+  #login-main .container {
+    width: 50%;
+  }
+
+  footer {
+    border-top: 1px solid silver;
+    padding: 10px;
+    bottom: 0;
+    position: fixed;
+    width: 100%;
+  }
+
+  footer p {
+    margin: 0 auto 0 auto;
+    text-align: center;
+  }
+
+  #login-main form {
+    vertical-align: top;
+  }
+
+  #login-main .auth-form-header {
+    color: white;
+    background: rgb(219, 170, 0);
+    border: 1px solid;
+    border-color: rgb(0, 124, 186);
+  }
+
+  #insecure-login-warning {
+    color: black;
+  }
+
+  .btn-jupyter.active,
+  .btn-jupyter:active,
+  .open>.dropdown-toggle.btn-jupyter {
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px #a88400;
+    border-color: #a88400;
+    outline-color: #a88400;
+  }
+
+  #login-main .form-control:focus,
+  #login-main input[type=submit]:focus {
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgb(219, 170, 0);
+    border-color: rgb(219, 170, 0);
+    outline-color: rgb(219, 170, 0);
+  }
+
+  .btn-jupyter {
+    color: #fff;
+    background-color: #F37524;
+    border-color: #E34F21;
+    padding: 10px;
+  }
+
+  .col-1 {
+    width: 8.33%;
+  }
+
+  .col-2 {
+    width: 16.66%;
+  }
+
+  .col-3 {
+    width: 25%;
+  }
+
+  .col-4 {
+    width: 33.33%;
+  }
+
+  .col-5 {
+    width: 41.66%;
+  }
+
+  .col-6 {
+    width: 50%;
+  }
+
+  .col-7 {
+    width: 58.33%;
+  }
+
+  .col-8 {
+    width: 66.66%;
+  }
+
+  .col-9 {
+    width: 75%;
+  }
+
+  .col-10 {
+    width: 83.33%;
+  }
+
+  .col-11 {
+    width: 91.66%;
+  }
+
+  .col-12 {
+    width: 100%;
+  }
+</style>
+{% endblock %}

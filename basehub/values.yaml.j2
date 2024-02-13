@@ -1,0 +1,108 @@
+---
+jupyterhub:
+    proxy:
+        https:
+            enabled: false
+    singleuser:
+        image:
+            name: ghcr.io/aiidalab/qe
+            tag: v23.10.2
+            pullPolicy: Always
+        cmd:
+            - start-singleuser.sh
+        extraEnv:
+            JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
+        cpu:
+            guarantee: 0.25
+            limit: 0.75
+        memory:
+            guarantee: 1G
+            limit: 3.5G
+        storage:
+            type: none  # user don't have persistent storage, the data will be lost after the pod is deleted
+            extraVolumes:
+                - name: hub-templates
+                  configMap:
+                      name: hub-templates
+                - name: hub-external
+                  configMap:
+                      name: hub-external
+                - name: etc-jupyter
+                  configMap:
+                      name: user-etc-jupyter
+            extraVolumeMounts:
+                - mountPath: /etc/jupyterhub/templates
+                  name: hub-templates
+                - mountPath: /usr/local/share/jupyterhub/static/external
+                  name: hub-external
+                - mountPath: /etc/jupyter
+                  name: etc-jupyter
+        profileList:
+            # A potential issue that profiles share the same PVC
+            # using multiple storageClass can solve this issue, but we do not
+            # need to do this for now.
+            - display_name: Quantum ESPRESSO App image
+              description: Ready to run Quantum ESPRESSO app.
+              default: true
+            - display_name: Minimal bare AiiDAlab image
+              description: If you want have a bare AiiDAlab and install you own app from store.
+              kubespawner_override:
+                  image: ghcr.io/aiidalab/full-stack:v2023.1014
+            - display_name: AiiDA in JupyterLab
+              description: JupyterLab with AiiDA installed for tutorials.
+              kubespawner_override:
+                  image: ghcr.io/aiidalab/base-with-services:v2023.1014
+                  default_url: /lab
+                  environment:
+                      JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
+
+    hub:
+        db:
+            pvc:
+                storageClassName: default
+        extraConfig:
+            00-logo: |
+                c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
+            02-spawner: |
+                c.KubeSpawner.http_timeout = 180
+            03-templates: |
+                c.JupyterHub.template_paths.append('/etc/jupyterhub/templates')
+            04-faq-about-handler: |
+                from jupyterhub.handlers import BaseHandler
+
+                class AboutHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("about.html", sync=True))
+
+                class FAQHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("faq.html", sync=True))
+
+                c.JupyterHub.extra_handlers.extend([
+                    (r"about", AboutHandler),
+                    (r"faq", FAQHandler),
+                ])
+            20-announce: |
+                c.JupyterHub.template_vars = {'announcement_login': 'The site is in beta testing. Please report any issue you might encounter in the <a href="https://github.com/unkcpz/aiidalab-demo-server/issues/new">AiiDAlab Demo GitHub repository</a>.'}
+        extraVolumes:
+            - name: hub-templates
+              configMap:
+                  name: hub-templates
+            - name: hub-external
+              configMap:
+                  name: hub-external
+        extraVolumeMounts:
+            - mountPath: /etc/jupyterhub/templates
+              name: hub-templates
+            - mountPath: /usr/local/share/jupyterhub/static/external
+              name: hub-external
+        config:
+            JupyterHub:
+                authenticator_class: 'github'
+            GitHubOAuthenticator:
+                client_id: {{ environ('GITHUB_CLIENT_ID') }}
+                client_secret: {{ environ('GITHUB_CLIENT_SECRET') }}
+                oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
+                admin_users:
+                    - unkcpz
+                    - yakutovicha
