@@ -196,7 +196,7 @@ The following environment variables are required to be set:
 * `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
 
 We use GitHub oauthenticator, the users will be able to login with their GitHub account.
-The authentication is created using the `aiidalab-bot` user with app name `aiidalab-demo-server`.
+The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
 
 To deploy the JupyterHub, run the following command:
 
