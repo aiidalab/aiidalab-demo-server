@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - staging
 
 # OIDC token being allowed be generated
 permissions:
@@ -14,7 +15,8 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    environment: production
+    # production if is main branch, staging if it is staging branch
+    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
