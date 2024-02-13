@@ -217,3 +217,14 @@ The CI workflow requires login to the Azure account, and we use OpenID Connect t
 Go to the entra.microsoft.com and navigate to the `aiidalab-sp` -> `Certificates & secrets` -> `Fedrated credentials`. Set credentials for the GitHub production and staging environments. 
 
 On the GitHub repository, the secrets are set for `production` and `staging` environments respectively.
+
+The `aiidalab-sp` was only assigned the Contributor role for the VNet, and it is not yet assigned to the resource group. This is to avoid the service principal to have too much access to the resources.
+
+To get the kube credentials, the `aiidalab-sp` should be assigned to cluster `demo-server` as well.
+
+```bash
+az ad sp create-for-rbac \
+   --name aiidalab-sp \
+   --role Contributor \
+   --scopes /subscriptions/<subscription-id>/resourcegroups/aiidalab_demo_server_marvel/providers/Microsoft.ContainerService/managedClusters/demo-server $VNET_ID \
+```
