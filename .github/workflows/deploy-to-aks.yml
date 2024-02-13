@@ -1,0 +1,62 @@
+---
+name: Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+# OIDC token being allowed be generated
+permissions:
+      id-token: write
+      contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'latest'
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: 'latest'
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install tool for rendering templates
+      run: |
+        python3 -m pip install -r requirements.txt
+
+    - name: Render values.yaml
+      run: |
+        jinja2 --format=env basehub/values.yaml.j2 > basehub/values.yaml
+      env:
+        OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
+        OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
+        OAUTH_CALLBACK_URL: ${{ secrets.OAUTH_CALLBACK_URL }}
+
+    - name: Connect to AKS
+      run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_KUBERNETES_CLUSTER }}
+
+    - name: Deploy to AKS
+      run: |
+        ./deploy.sh
+      env:
+        K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+
+    - name: Logout of Azure
+      run: az logout

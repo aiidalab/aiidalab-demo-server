@@ -182,6 +182,12 @@ source k8s-deploy-venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
+Render the `values.yaml` file with the following command:
+
+```bash
+jinja2 --format=env basehub/values.yaml.j2 > basehub/values.yaml
+```
+
 The following environment variables are required to be set:
 
 * `K8S_NAMESPACE`: The namespace where the JupyterHub will be installed, e.g. `production`, `staging`.
@@ -199,3 +205,15 @@ To deploy the JupyterHub, run the following command:
 ```
 
 If the namespace does not exist, it will be created.
+
+
+## For maintainers
+
+### Automatic CI/CD deployment
+
+We simply run helm upgrade in CI workflow to deploy the JupyterHub.
+The CI workflow requires login to the Azure account, and we use OpenID Connect to authenticate the user.
+
+Go to the entra.microsoft.com and navigate to the `aiidalab-sp` -> `Certificates & secrets` -> `Fedrated credentials`. Set credentials for the GitHub production and staging environments. 
+
+On the GitHub repository, the secrets are set for `production` and `staging` environments respectively.
