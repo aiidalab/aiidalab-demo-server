@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - staging
+  workflow_dispatch:
 
 # OIDC token being allowed be generated
 permissions:
@@ -50,6 +51,7 @@ jobs:
         OAUTH_CLIENT_ID: ${{ secrets.OAUTH_CLIENT_ID }}
         OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
         OAUTH_CALLBACK_URL: ${{ secrets.OAUTH_CALLBACK_URL }}
+        K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
 
     - name: Connect to AKS
       run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_KUBERNETES_CLUSTER }}
