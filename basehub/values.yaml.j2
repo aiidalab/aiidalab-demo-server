@@ -68,7 +68,7 @@ jupyterhub:
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
             02-spawner: |
-                c.KubeSpawner.http_timeout = 180
+                c.KubeSpawner.http_timeout = 300
             03-templates: |
                 c.JupyterHub.template_paths.append('/etc/jupyterhub/templates')
             04-faq-about-handler: |
