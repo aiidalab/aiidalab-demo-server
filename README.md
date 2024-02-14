@@ -230,7 +230,7 @@ kubectl get svc proxy-public -n <namespace>
 ```
 
 
-## For maintainers
+## For maintainers and administrators
 
 ### Automatic CI/CD deployment
 
@@ -244,3 +244,20 @@ On the GitHub repository, the secrets are set for `production` and `staging` env
 The `aiidalab-sp` was only assigned the Contributor role for the VNet, and it is not yet assigned to the resource group. This is to avoid the service principal to have too much access to the resources.
 
 To get the kube credentials, the `aiidalab-sp` should be assigned to cluster `demo-server` as well.
+
+### Set up automatic HTTPS with Let's Encrypt
+
+JupyterHub uses Let’s Encrypt to automatically create HTTPS certificates for your deployment.
+
+Specify the two bits of information that we need to automatically provision HTTPS certificates - your domain name & a contact email address.
+
+```yaml
+proxy:
+  https:
+    enabled: true
+    hosts:
+      - <your-domain-name>
+    letsencrypt:
+      contactEmail: <your-email-address>
+```
+
