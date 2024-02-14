@@ -1,0 +1,34 @@
+---
+name: sync-staging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # after main updated (merge from staging), sync staging to main
+  sync-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email github-actions[bot]@users.noreply.github.com
+
+      - name: Update staging Branch
+        run: |
+          git fetch origin
+          git checkout staging
+          git pull
+          git merge origin/main
+      
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: staging

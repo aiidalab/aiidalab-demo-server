@@ -55,11 +55,11 @@ jupyterhub:
                   default_url: /lab
                   environment:
                       JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
-
     hub:
         db:
             pvc:
                 storageClassName: default
+                storage: 1Gi
         extraConfig:
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
