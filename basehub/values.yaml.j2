@@ -104,8 +104,8 @@ jupyterhub:
             JupyterHub:
                 authenticator_class: 'github'
             GitHubOAuthenticator:
-                client_id: {{ environ('GITHUB_CLIENT_ID') }}
-                client_secret: {{ environ('GITHUB_CLIENT_SECRET') }}
+                client_id: {{ environ('OAUTH_CLIENT_ID') }}
+                client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
                 oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
                 admin_users:
                     - unkcpz
