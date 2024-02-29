@@ -107,6 +107,7 @@ jupyterhub:
                 client_id: {{ environ('OAUTH_CLIENT_ID') }}
                 client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
                 oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
+                allowed_organizations: ['aiidalab']
                 admin_users:
                     - unkcpz
                     - yakutovicha
