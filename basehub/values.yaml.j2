@@ -87,7 +87,10 @@ jupyterhub:
                     (r"faq", FAQHandler),
                 ])
             20-announce: |
-                c.JupyterHub.template_vars = {'announcement_login': 'The site is in beta testing. Please report any issue you might encounter in the <a href="https://github.com/unkcpz/aiidalab-demo-server/issues/new">AiiDAlab Demo GitHub repository</a>.'}
+                c.JupyterHub.template_vars = {
+                    'announcement_login': 'The site is in beta testing. Please report any issue you might encounter in the <a href="https://github.com/unkcpz/aiidalab-demo-server/issues/new">AiiDAlab Demo GitHub repository</a>.',
+                    'announcement': 'The site is in beta testing. Use it at your own risk.',
+                }
         extraVolumes:
             - name: hub-templates
               configMap:
