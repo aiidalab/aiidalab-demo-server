@@ -61,12 +61,12 @@ jupyterhub:
                       JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
         lifecycleHooks:
             postStart:
-            exec:
-                command:
-                - "sh"
-                - "-c"
-                - >
-                    tar -zxf /tmp/home.tar -C /home/jovyan
+                exec:
+                    command:
+                        - "sh"
+                        - "-c"
+                        - >
+                            tar -zxf /tmp/home.tar -C /home/jovyan
                     
     hub:
         db:
