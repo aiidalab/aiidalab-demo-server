@@ -1,8 +1,10 @@
 ---
 jupyterhub:
     proxy:
+        service:
+          loadBalancerIP: 20.250.195.79
         https:
-            enabled: true
+            enabled: false
             hosts:
                 - {{ 'staging-demo' if environ('K8S_NAMESPACE')=='staging' else 'demo' }}.aiidalab.io
             letsencrypt:
