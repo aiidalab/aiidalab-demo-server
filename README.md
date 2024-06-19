@@ -11,6 +11,8 @@ curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 az login
 ```
 
+Check [install azure-cli on macOS](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-macos) if you are using macOS.
+
 You’ll need to open a browser and follow the instructions in your terminal to log in.
 
 Consider setting a [cloud budget](https://learn.microsoft.com/en-us/partner-center/set-an-azure-spending-budget-for-your-customers) for your Azure account.
