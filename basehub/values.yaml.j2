@@ -11,8 +11,8 @@ jupyterhub:
                 contactEmail: aiidalab@materialscloud.org
     singleuser:
         image:
-            name: superstar54/qe-tar-home-z
-            tag: latest
+            name: ghcr.io/aiidalab/qe
+            tag: pr-778
             pullPolicy: Always
         cmd:
             - start-singleuser.sh
@@ -50,14 +50,10 @@ jupyterhub:
             - display_name: Quantum ESPRESSO App image
               description: Ready to run Quantum ESPRESSO app.
               default: true
-            - display_name: Minimal bare AiiDAlab image
-              description: If you want have a bare AiiDAlab and install you own app from store.
-              kubespawner_override:
-                  image: ghcr.io/aiidalab/full-stack:v2023.1014
             - display_name: AiiDA in JupyterLab
-              description: JupyterLab with AiiDA installed for tutorials.
+              description: AiiDA in JupyterHub for tutorials.
               kubespawner_override:
-                  image: ghcr.io/aiidalab/base-with-services:v2023.1014
+                  image: ghcr.io/aiidalab/base-with-services:2024.1020
                   default_url: /lab
                   environment:
                       JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
