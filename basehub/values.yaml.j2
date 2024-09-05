@@ -1,8 +1,6 @@
 ---
 jupyterhub:
     proxy:
-        service:
-          loadBalancerIP: 20.250.195.79
         https:
             enabled: true
             hosts:
@@ -12,20 +10,22 @@ jupyterhub:
     singleuser:
         image:
             name: ghcr.io/aiidalab/qe
-            tag: pr-781
+            tag: edge
             pullPolicy: Always
         cmd:
             - start-singleuser.sh
         extraEnv:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
         cpu:
-            guarantee: 1
-            limit: 2
+            guarantee: 1.5
+            limit: 1.5
         memory:
-            guarantee: 4G
-            limit: 8G
+            guarantee: 5G
+            limit: 5G
         storage:
-            type: none  # user don't have persistent storage, the data will be lost after the pod is deleted
+            homeMountPath: /home/jovyan
+            dynamic:
+                storageClass: default
             extraVolumes:
                 - name: hub-templates
                   configMap:
@@ -43,20 +43,24 @@ jupyterhub:
                   name: hub-external
                 - mountPath: /etc/jupyter
                   name: etc-jupyter
-        profileList:
-            # A potential issue that profiles share the same PVC
-            # using multiple storageClass can solve this issue, but we do not
-            # need to do this for now.
-            - display_name: Quantum ESPRESSO App image
-              description: Ready to run Quantum ESPRESSO app.
-              default: true
-            - display_name: AiiDA in JupyterLab
-              description: AiiDA in JupyterHub for tutorials.
-              kubespawner_override:
-                  image: ghcr.io/aiidalab/base-with-services:2024.1020
-                  default_url: /lab
-                  environment:
-                      JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
+        # profileList:
+        #     # A potential issue that profiles share the same PVC
+        #     # using multiple storageClass can solve this issue, but we do not
+        #     # need to do this for now.
+        #     - display_name: Quantum ESPRESSO App image
+        #       description: Ready to run Quantum ESPRESSO app.
+        #       default: true
+        #     - display_name: Minimal bare AiiDAlab image
+        #       description: If you want have a bare AiiDAlab and install you own app from store.
+        #       kubespawner_override:
+        #           image: ghcr.io/aiidalab/full-stack:v2023.1014
+        #     - display_name: AiiDA in JupyterLab
+        #       description: JupyterLab with AiiDA installed for tutorials.
+        #       kubespawner_override:
+        #           image: ghcr.io/aiidalab/base-with-services:v2023.1014
+        #           default_url: /lab
+        #           environment:
+        #               JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
     hub:
         db:
             pvc:
@@ -108,7 +112,8 @@ jupyterhub:
                 client_id: {{ environ('OAUTH_CLIENT_ID') }}
                 client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
                 oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
-                allowed_organizations: ['aiidalab']
+                allow_all: true
+                #allowed_organizations: ['aiidalab']
                 admin_users:
                     - unkcpz
                     - yakutovicha
