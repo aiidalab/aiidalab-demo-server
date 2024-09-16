@@ -19,11 +19,11 @@ jupyterhub:
         extraEnv:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
         cpu:
-            guarantee: 1
-            limit: 2
+            guarantee: 1.2
+            limit: 1.2
         memory:
-            guarantee: 4G
-            limit: 8G
+            guarantee: 2G
+            limit: 2G
         storage:
             type: none  # user don't have persistent storage, the data will be lost after the pod is deleted
             extraVolumes:
@@ -58,6 +58,13 @@ jupyterhub:
                   environment:
                       JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
     hub:
+        resources:
+            requests:
+                cpu: "500m"   
+                memory: "1Gi" 
+            limits:
+                cpu: "1000m"
+                memory: "1Gi"
         db:
             pvc:
                 storageClassName: default
