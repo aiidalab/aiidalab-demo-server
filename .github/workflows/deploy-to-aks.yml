@@ -54,7 +54,7 @@ jobs:
         K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
 
     - name: Connect to AKS
-      run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_KUBERNETES_CLUSTER }}
+      run: az aks get-credentials --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}
 
     - name: Deploy to AKS
       run: |
