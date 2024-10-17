@@ -26,6 +26,7 @@ jupyterhub:
             homeMountPath: /home/jovyan
             dynamic:
                 storageClass: default
+            capacity: 50Gi
             extraVolumes:
                 - name: hub-templates
                   configMap:
