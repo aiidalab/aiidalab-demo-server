@@ -44,24 +44,6 @@ jupyterhub:
                   name: hub-external
                 - mountPath: /etc/jupyter
                   name: etc-jupyter
-        # profileList:
-        #     # A potential issue that profiles share the same PVC
-        #     # using multiple storageClass can solve this issue, but we do not
-        #     # need to do this for now.
-        #     - display_name: Quantum ESPRESSO App image
-        #       description: Ready to run Quantum ESPRESSO app.
-        #       default: true
-        #     - display_name: Minimal bare AiiDAlab image
-        #       description: If you want have a bare AiiDAlab and install you own app from store.
-        #       kubespawner_override:
-        #           image: ghcr.io/aiidalab/full-stack:v2023.1014
-        #     - display_name: AiiDA in JupyterLab
-        #       description: JupyterLab with AiiDA installed for tutorials.
-        #       kubespawner_override:
-        #           image: ghcr.io/aiidalab/base-with-services:v2023.1014
-        #           default_url: /lab
-        #           environment:
-        #               JUPYTERHUB_SINGLEUSER_APP: jupyter_server.serverapp.ServerApp
     hub:
         db:
             pvc:
