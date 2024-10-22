@@ -4,7 +4,7 @@ name: Deploy to AKS
 on:
   push:
     branches:
-      - main
+      - production
       - staging
   workflow_dispatch:
 
@@ -17,7 +17,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     # production if is main branch, staging if it is staging branch
-    environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+    environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -54,7 +54,7 @@ jobs:
         K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
 
     - name: Connect to AKS
-      run: az aks get-credentials --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} --name ${{ secrets.AZURE_KUBERNETES_CLUSTER }}
+      run: az aks get-credentials --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}
 
     - name: Deploy to AKS
       run: |
