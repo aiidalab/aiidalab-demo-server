@@ -22,11 +22,6 @@ jupyterhub:
         memory:
             guarantee: 5G
             limit: 5G
-        storage:
-            homeMountPath: /home/jovyan
-            dynamic:
-                storageClass: default
-            capacity: 50Gi
             extraVolumes:
                 - name: hub-templates
                   configMap:
