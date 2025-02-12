@@ -97,3 +97,10 @@ jupyterhub:
                 admin_users:
                     - unkcpz
                     - yakutovicha
+    cull:
+        enabled: true
+        users: true
+        adminUsers: true
+        timeout: 43200 # 12 hours
+        every: 300 # 5 minutes
+        maxAge: 43200 # 12 hours
