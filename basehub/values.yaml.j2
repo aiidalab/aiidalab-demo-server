@@ -23,6 +23,7 @@ jupyterhub:
             guarantee: 5G
             limit: 5G
         storage:
+            type: none
             extraVolumes:
                 - name: hub-templates
                   configMap:
