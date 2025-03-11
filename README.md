@@ -185,6 +185,16 @@ Helm is a package manager for Kubernetes, and it is used to install JupyterHub.
 curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
 ```
 
+## Generating policy documents for an AiiDAlab deployment
+
+In the `basehub/policy` folder:
+
+- Copy `config.yaml` as `config-<deployment-name>.yaml`
+- Fill out the required variables in the new config file
+- Run `./generate.sh` to generate the policy documents
+
+See `basehub/policy/README.md` for more information.
+
 ## Install JupyterHub
 
 Running the helm command will install JupyterHub with the configuration in `values.yaml`.

@@ -39,6 +39,10 @@
 
             {# Start AiiDAlab specific change #}
             <li><a href="{{base_url}}about">About</a></li>
+            {% if include_policies %}
+            <li><a href="{{base_url}}terms-of-use">Terms of use</a></li>
+            <li><a href="{{base_url}}privacy-policy">Privacy policy</a></li>
+            {% endif %}
             <li><a href="{{base_url}}faq">FAQ</a></li>
             {# End change #}
 
@@ -49,6 +53,10 @@
         {% else %}
         <ul class="nav navbar-nav">
           <li><a href="{{base_url}}about">About</a></li>
+          {% if include_policies %}
+          <li><a href="{{base_url}}terms-of-use">Terms of use</a></li>
+          <li><a href="{{base_url}}privacy-policy">Privacy policy</a></li>
+          {% endif %}
           <li><a href="{{base_url}}faq">FAQ</a></li>
         </ul>
         {# End change #}
