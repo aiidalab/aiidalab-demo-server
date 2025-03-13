@@ -20,3 +20,7 @@ To generate the policy documents, follow these steps:
 3. run `source generate.sh`
 
 The `generate.sh` script also sets the environment variable `INCLUDE_POLICIES` to `True`, which is used in the `values.yaml` and `page.html` templates to enable the policy navigation items.
+
+### Note regarding location
+
+The documents were defined initially at EPFL and include Swiss/Lausanne-specific items. If you do opt to include these policies, please ensure that they are relevant to your deployment and location.

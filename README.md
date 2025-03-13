@@ -123,7 +123,6 @@ az aks update-credentials \
  --client-secret <NewClientSecret>
 ```
 
-
 The auto-scaler will scale the number of nodes in the cluster between 3 and 6, based on the CPU and memory usage of the pods.
 It can be updated later with the following command:
 
@@ -189,9 +188,8 @@ curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
 
 In the `basehub/policy` folder:
 
-- Copy `config.yaml` as `config-<deployment-name>.yaml`
-- Fill out the required variables in the new config file
-- Run `./generate.sh` to generate the policy documents
+- Fill out the required variables in `config.yaml`
+- Run `source generate.sh` to generate the policy documents
 
 See `basehub/policy/README.md` for more information.
 
@@ -217,10 +215,10 @@ jinja2 --format=env basehub/values.yaml.j2 > basehub/values.yaml
 
 The following environment variables are required to be set:
 
-* `K8S_NAMESPACE`: The namespace where the JupyterHub will be installed, e.g. `production`, `staging`.
-* `OAUTH_CLIENT_ID`: The client ID of the GitHub app.
-* `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
-* `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
+- `K8S_NAMESPACE`: The namespace where the JupyterHub will be installed, e.g. `production`, `staging`.
+- `OAUTH_CLIENT_ID`: The client ID of the GitHub app.
+- `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
+- `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
 
 We use GitHub oauthenticator, the users will be able to login with their GitHub account.
 The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
@@ -239,7 +237,6 @@ The IP address of proxy-public service can be retrieved with the following comma
 kubectl get svc proxy-public -n <namespace>
 ```
 
-
 ## For maintainers and administrators
 
 ### Automatic CI/CD deployment
@@ -247,7 +244,7 @@ kubectl get svc proxy-public -n <namespace>
 We simply run helm upgrade in CI workflow to deploy the JupyterHub.
 The CI workflow requires login to the Azure account, and we use OpenID Connect to authenticate the user.
 
-Go to the entra.microsoft.com and navigate to the `aiidalab-sp` -> `Certificates & secrets` -> `Fedrated credentials`. Set credentials for the GitHub production and staging environments. 
+Go to the entra.microsoft.com and navigate to the `aiidalab-sp` -> `Certificates & secrets` -> `Fedrated credentials`. Set credentials for the GitHub production and staging environments.
 
 On the GitHub repository, the secrets are set for `production` and `staging` environments respectively.
 
@@ -270,4 +267,3 @@ proxy:
     letsencrypt:
       contactEmail: <your-email-address>
 ```
-
