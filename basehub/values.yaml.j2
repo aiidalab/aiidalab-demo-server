@@ -4,7 +4,7 @@ jupyterhub:
         https:
             enabled: true
             hosts:
-                - edan-aiidalab.aiidalab.io
+                - {{ 'staging-demo' if environ('K8S_NAMESPACE') == 'staging' else 'demo' }}.aiidalab.io
             letsencrypt:
                 contactEmail: aiidalab@materialscloud.org
     singleuser:
