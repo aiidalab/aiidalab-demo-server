@@ -4,7 +4,7 @@ jupyterhub:
         https:
             enabled: true
             hosts:
-                - {{ 'staging-demo' if environ('K8S_NAMESPACE')=='staging' else 'demo' }}.aiidalab.io
+                - {{ 'staging-demo' if environ('K8S_NAMESPACE') == 'staging' else 'demo' }}.aiidalab.io
             letsencrypt:
                 contactEmail: aiidalab@materialscloud.org
     singleuser:
@@ -45,19 +45,31 @@ jupyterhub:
                 - mountPath: /etc/jupyter
                   name: etc-jupyter
     hub:
+        readinessProbe:
+            enabled: true
+            initialDelaySeconds: 5  # Increase delay to allow Hub to start
+            periodSeconds: 10        # Frequency of the probe check
+            failureThreshold: 5      # Allow 5 failures before marking unhealthy
+            timeoutSeconds: 5        # Timeout for the probe check
         db:
             pvc:
                 storageClassName: default
                 storage: 1Gi
         extraConfig:
+            customTemplateVars: |
+                c.JupyterHub.template_vars = {
+                    'include_policies': {{ environ('INCLUDE_POLICIES') }},
+                }
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
             02-spawner: |
                 c.KubeSpawner.http_timeout = 300
             03-templates: |
                 c.JupyterHub.template_paths.append('/etc/jupyterhub/templates')
-            04-faq-about-handler: |
+            04-navigation-handler: |
                 from jupyterhub.handlers import BaseHandler
+
+                include_policies = {{ environ('INCLUDE_POLICIES') }}
 
                 class AboutHandler(BaseHandler):
                     def get(self):
@@ -67,10 +79,26 @@ jupyterhub:
                     def get(self):
                         self.write(self.render_template("faq.html", sync=True))
 
-                c.JupyterHub.extra_handlers.extend([
-                    (r"about", AboutHandler),
-                    (r"faq", FAQHandler),
-                ])
+                if include_policies:
+                    class TermsOfUseHandler(BaseHandler):
+                        def get(self):
+                            self.write(self.render_template("terms-of-use.html", sync=True))
+
+                    class PrivacyPolicyHandler(BaseHandler):
+                        def get(self):
+                            self.write(self.render_template("privacy-policy.html", sync=True))
+
+                routes = [(r"about", AboutHandler)]
+                if include_policies:
+                    routes.extend(
+                        [
+                            (r"terms-of-use", TermsOfUseHandler),
+                            (r"privacy-policy", PrivacyPolicyHandler),
+                        ]
+                    )
+                routes.append((r"faq", FAQHandler))
+                c.JupyterHub.extra_handlers.extend(routes)
+
             20-announce: |
                 c.JupyterHub.template_vars = {
                     'announcement_login': 'The site is in beta testing. Please report any issue you might encounter in the <a href="https://github.com/unkcpz/aiidalab-demo-server/issues/new">AiiDAlab Demo GitHub repository</a>.',

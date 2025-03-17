@@ -1,6 +1,11 @@
 ssh-key-*
 secrets*
 k8s-deploy-venv/*
-values.yaml
 */Chart.lock
 */charts/*
+
+# Generated from templates
+values.yaml
+*/policy/config-*.yaml
+**/templates/privacy-policy.html
+**/templates/terms-of-use.html
