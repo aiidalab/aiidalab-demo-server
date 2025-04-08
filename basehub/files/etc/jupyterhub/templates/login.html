@@ -1,6 +1,6 @@
 {% extends "templates/login.html" %}
 
-{% block title %}PSI AiiDAlab - Login{% endblock %}
+{% block title %}Demo AiiDAlab - Login{% endblock %}
 
 <!-- Global site tag (gtag.js) - Google Analytics (comming soon) -->
 
@@ -51,7 +51,9 @@
     <h1>Welcome to the AiiDAlab demo server!</h1>
     <p> This AiiDAlab server is deployed and maintained by the <a href="https://www.aiidalab.net/about/" target="_blank">AiiDAlab team</a>.</p>
     <p> The goal of the server is to provide a platform for users to try out AiiDAlab without the need to install it locally.</p>
-    <p> The server is not intended for production use, and the data on the server may be deleted at any time without notice. </p>
+    <div style="border: 2px solid red; padding: 10px; color: red;">
+      <p> This server is intended for temporary use only and is not suitable for production environments. All user data will be automatically deleted 12 hours after the first login. </p>
+    </div>
 
     <h2>Login to AiiDAlab</h2>
     <p>
@@ -73,9 +75,6 @@
         An <a href="https://www.youtube.com/watch?v=Oqo5buk6Om8">AiiDAlab introduction</a> video for an overview.
       </li>
     </ul>
-
-    <h2>Any questions?</h2>
-    <p>Please checkout our <a href="{{base_url}}faq">FAQ</a> page. If you cannot find your question, feel free to <a href="mailto:jusong.yu@psi.ch?subject=[Help]%20AiiDAlab PSI&cc=giovanni.pizzi@psi.ch,xing.wang@psi.ch">send an email to the developers</a>. For technical issues, <a href="https://gitlab.psi.ch/yu_j/aiidalab-psi-deploy/-/issues/new">open an issue on GitLab</a> and we will try to resolve it.</p>
   </div>
 </div>
 

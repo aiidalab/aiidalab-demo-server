@@ -23,10 +23,7 @@ jupyterhub:
             guarantee: 5G
             limit: 5G
         storage:
-            homeMountPath: /home/jovyan
-            dynamic:
-                storageClass: default
-            capacity: 50Gi
+            type: none
             extraVolumes:
                 - name: hub-templates
                   configMap:
@@ -131,6 +128,7 @@ jupyterhub:
                     - mikibonacci
                     - giovannipizzi
                     - edan-bainglass
+
     cull:
         enabled: true
         users: true
