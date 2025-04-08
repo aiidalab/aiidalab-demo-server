@@ -9,9 +9,9 @@ jupyterhub:
                 contactEmail: aiidalab@materialscloud.org
     singleuser:
         image:
-            name: ghcr.io/aiidalab/qe
-            tag: v24.10.0a7
-            pullPolicy: Always
+            name: aiidalab/qe
+            tag: latest
+            pullPolicy: IfNotPresent
         cmd:
             - start-singleuser.sh
         extraEnv:
@@ -128,3 +128,13 @@ jupyterhub:
                 admin_users:
                     - unkcpz
                     - yakutovicha
+                    - mikibonacci
+                    - giovannipizzi
+                    - edan-bainglass
+    cull:
+        enabled: true
+        users: true
+        adminUsers: true
+        timeout: 43200 # 12 hours
+        every: 300 # 5 minutes
+        maxAge: 43200 # 12 hours
