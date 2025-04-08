@@ -11,7 +11,7 @@ jupyterhub:
         image:
             name: aiidalab/qe
             tag: latest
-            pullPolicy: IfNotPresent
+            pullPolicy: Always
         cmd:
             - start-singleuser.sh
         extraEnv:
