@@ -9,8 +9,8 @@ jupyterhub:
                 contactEmail: aiidalab@materialscloud.org
     singleuser:
         image:
-            name: ghcr.io/aiidalab/qe
-            tag: v24.10.0a7
+            name: aiidalab/qe
+            tag: latest
             pullPolicy: Always
         cmd:
             - start-singleuser.sh
@@ -125,6 +125,10 @@ jupyterhub:
                 admin_users:
                     - unkcpz
                     - yakutovicha
+                    - mikibonacci
+                    - giovannipizzi
+                    - edan-bainglass
+
     cull:
         enabled: true
         users: true
