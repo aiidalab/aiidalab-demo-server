@@ -16,6 +16,7 @@ jupyterhub:
             - start-singleuser.sh
         extraEnv:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
+            LIFETIME: "{{ environ('CONTAINER_LIFETIME') }}"
         cpu:
             guarantee: 1.5
             limit: 1.5
@@ -37,6 +38,9 @@ jupyterhub:
                 - name: etc-jupyter
                   configMap:
                       name: user-etc-jupyter
+                - name: notebook-static-custom
+                  configMap:
+                      name: notebook-static-custom
             extraVolumeMounts:
                 - mountPath: /etc/jupyterhub/templates
                   name: hub-templates
@@ -44,6 +48,8 @@ jupyterhub:
                   name: hub-external
                 - mountPath: /etc/jupyter
                   name: etc-jupyter
+                - mountPath: /opt/conda/lib/python{{ environ('PYTHON_MINOR_VERSION') }}/site-packages/notebook/static/custom
+                  name: notebook-static-custom
     hub:
         readinessProbe:
             enabled: true
