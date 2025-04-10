@@ -29,3 +29,29 @@ data:
   {{- end }}
   {{- end }}
   {{- (.Files.Glob "files/etc/jupyter/*").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notebook-static-custom
+data:
+  {{- (.Files.Glob "files/static/custom/*").AsConfig | nindent 2 }}
+  config.json: |
+    {
+      "ephemeral": {{ ternary "1" "0" (hasKey .Values.jupyterhub.singleuser.extraEnv "CONTAINER_LIFETIME") }},
+      "lifetime": {{ .Values.jupyterhub.singleuser.extraEnv.CONTAINER_LIFETIME | default "" | quote }}
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aiidalab-uptime
+data:
+  aiidalab_uptime.json: |
+    {
+      "NotebookApp": {
+        "nbserver_extensions": {
+          "notebook.static.custom.aiidalab_uptime": true
+        }
+      }
+    }
