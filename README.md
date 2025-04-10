@@ -219,6 +219,8 @@ The following environment variables are required to be set:
 - `OAUTH_CLIENT_ID`: The client ID of the GitHub app.
 - `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
 - `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
+- `PYTHON_MINOR_VERSION`: The version of python used in the aiidalab image used by the deployment
+- `CONTAINER_LIFETIME`: The lifetime of the container (cull time defined by the kubernetes protocol)
 
 We use GitHub oauthenticator, the users will be able to login with their GitHub account.
 The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
