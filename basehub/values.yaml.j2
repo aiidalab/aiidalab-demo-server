@@ -38,6 +38,9 @@ jupyterhub:
                 - name: notebook-static-custom
                   configMap:
                       name: notebook-static-custom
+                - name: aiidalab-uptime
+                  configMap:
+                      name: aiidalab-uptime
             extraVolumeMounts:
                 - mountPath: /etc/jupyterhub/templates
                   name: hub-templates
@@ -47,6 +50,8 @@ jupyterhub:
                   name: etc-jupyter
                 - mountPath: /opt/conda/lib/python3.9/site-packages/notebook/static/custom
                   name: notebook-static-custom
+                - mountPath: /opt/conda/etc/jupyter/jupyter_notebook_config.d
+                  name: aiidalab-uptime
     hub:
         readinessProbe:
             enabled: true
