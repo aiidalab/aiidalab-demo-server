@@ -50,10 +50,10 @@ jupyterhub:
     hub:
         readinessProbe:
             enabled: true
-            initialDelaySeconds: 5  # Increase delay to allow Hub to start
-            periodSeconds: 10        # Frequency of the probe check
-            failureThreshold: 5      # Allow 5 failures before marking unhealthy
-            timeoutSeconds: 5        # Timeout for the probe check
+            initialDelaySeconds: 5 # Increase delay to allow Hub to start
+            periodSeconds: 10 # Frequency of the probe check
+            failureThreshold: 5 # Allow 5 failures before marking unhealthy
+            timeoutSeconds: 5 # Timeout for the probe check
         db:
             pvc:
                 storageClassName: default
@@ -121,7 +121,7 @@ jupyterhub:
               name: hub-external
         config:
             JupyterHub:
-                authenticator_class: 'github'
+                authenticator_class: "github"
             GitHubOAuthenticator:
                 client_id: {{ environ('OAUTH_CLIENT_ID') }}
                 client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
