@@ -186,12 +186,10 @@ curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
 
 ## Generating policy documents for an AiiDAlab deployment
 
-In the `basehub/policy` folder:
-
-- Fill out the required variables in `config.yaml`
-- Run `source generate.sh` to generate the policy documents
-
-See `basehub/policy/README.md` for more information.
+Policy document templates are available at https://github.com/aiidalab/aiidalab-deployment-files.
+Follow the instructions there to generate the policy documents for your deployment.
+You can then deploy the generated documents in `basehub/files/etc/jupyterhub/templates`.
+Once deployed, set the `INCLUDE_POLICIES` environment variable to `true`. The deployment procedure will then introduce links to the documents in the JupyterHub UI.
 
 ## Install JupyterHub
 
