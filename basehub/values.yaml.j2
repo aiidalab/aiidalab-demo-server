@@ -1,22 +1,37 @@
+{%- set LOCAL = (environ('LOCAL') or 'false')|lower == 'true' -%}
+{%- set IS_STAGING = (environ('K8S_NAMESPACE') or 'production') == 'staging' -%}
+{%- set INCLUDE_POLICIES = (environ('INCLUDE_POLICIES') or 'false')|lower == 'true' -%}
+{%- set CONTAINER_LIFETIME = (environ('CONTAINER_LIFETIME') or '') -%}
+{%- set PYTHON_VERSION = (environ('PYTHON_VERSION') or '3.9') -%}
+
 ---
 jupyterhub:
     proxy:
+        {%- if LOCAL %}
+        service:
+            type: NodePort
+            nodePorts:
+                http: 32080
+        {%- endif %}
         https:
-            enabled: true
+            enabled: {{ 'true' if not LOCAL else 'false' }}
+            {%- if not LOCAL %}
             hosts:
-                - {{ 'staging-demo' if environ('K8S_NAMESPACE') == 'staging' else 'demo' }}.aiidalab.io
+                - {{ 'staging-demo' if IS_STAGING else 'demo' }}.aiidalab.io
             letsencrypt:
                 contactEmail: aiidalab@materialscloud.org
+            {%- endif %}
+
     singleuser:
         image:
             name: aiidalab/qe
             tag: latest
-            pullPolicy: Always
+            pullPolicy: {{ 'IfNotPresent' if LOCAL else 'Always' }}
         cmd:
             - start-singleuser.sh
         extraEnv:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
-            CONTAINER_LIFETIME: "12:00:00"
+            CONTAINER_LIFETIME: "{{ CONTAINER_LIFETIME }}"
         cpu:
             guarantee: 1.5
             limit: 1.5
@@ -48,10 +63,11 @@ jupyterhub:
                   name: hub-external
                 - mountPath: /etc/jupyter
                   name: etc-jupyter
-                - mountPath: /opt/conda/lib/python3.9/site-packages/notebook/static/custom
+                - mountPath: /opt/conda/lib/python{{ PYTHON_VERSION }}/site-packages/notebook/static/custom
                   name: notebook-static-custom
                 - mountPath: /opt/conda/etc/jupyter/jupyter_notebook_config.d
                   name: aiidalab-uptime
+
     hub:
         readinessProbe:
             enabled: true
@@ -61,13 +77,15 @@ jupyterhub:
             timeoutSeconds: 5 # Timeout for the probe check
         db:
             pvc:
-                storageClassName: default
+                storageClassName: standard
                 storage: 1Gi
         extraConfig:
             customTemplateVars: |
-                c.JupyterHub.template_vars = {
-                    'include_policies': {{ environ('INCLUDE_POLICIES') }},
-                }
+                c.JupyterHub.template_vars = getattr(c.JupyterHub, 'template_vars', {})
+                c.JupyterHub.template_vars.update({
+                    'include_policies': {{ INCLUDE_POLICIES }},
+                    'is_ephemeral': {{ 'True' if CONTAINER_LIFETIME|length > 0 else 'False' }},
+                })
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
             02-spawner: |
@@ -77,7 +95,7 @@ jupyterhub:
             04-navigation-handler: |
                 from jupyterhub.handlers import BaseHandler
 
-                include_policies = {{ environ('INCLUDE_POLICIES') }}
+                include_policies = {{ INCLUDE_POLICIES }}
 
                 class AboutHandler(BaseHandler):
                     def get(self):
@@ -108,10 +126,10 @@ jupyterhub:
                 c.JupyterHub.extra_handlers.extend(routes)
 
             20-announce: |
-                c.JupyterHub.template_vars = {
+                c.JupyterHub.template_vars.update({
                     'announcement_login': 'The site is in beta testing. Please report any issue you might encounter in the <a href="https://github.com/unkcpz/aiidalab-demo-server/issues/new">AiiDAlab Demo GitHub repository</a>.',
                     'announcement': 'The site is in beta testing. Use it at your own risk.',
-                }
+                })
         extraVolumes:
             - name: hub-templates
               configMap:
