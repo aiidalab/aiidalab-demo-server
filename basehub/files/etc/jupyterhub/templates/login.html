@@ -10,19 +10,17 @@
 {% if is_ephemeral %}
 <div id="login-page">
   <div id="warning-banner" class="alert alert-warning">
-    <div id="warning-label" class="col col-md-2">
+    <h2 id="warning-label">
       <i class="fa fa-exclamation-triangle"></i>
       <strong>Attention</strong>
-    </div>
-    <div class="col col-md-10">
+    </h2>
+    <p>
       This server is intended for temporary use only and is not suitable for
       production environments.
-      <br />
-      <strong>
-        All user data will be automatically deleted 12 hours after the first
-        login.
-      </strong>
-    </div>
+    </p>
+    <strong>
+      All user data will be automatically deleted when the above timer expires.
+    </strong>
   </div>
   {% endif %}
 
@@ -212,13 +210,14 @@
 
   #warning-banner {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    text-align: center;
     margin-bottom: 0;
     box-shadow: 0 0 5px #fcf8e3;
   }
 
   #warning-label {
-    font-size: large;
+    margin-top: 0;
   }
 
   #main-container {
