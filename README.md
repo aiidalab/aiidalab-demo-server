@@ -213,7 +213,7 @@ The `values.yaml` file requires the following environment variables to be set:
 - `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
 - `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
 
-We use GitHub oauthenticator, the users will be able to login with their GitHub account.
+We use GitHub oauthenticator to allow users to login with their GitHub account.
 The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
 
 Render the `values.yaml` file with the following command:
@@ -293,11 +293,18 @@ source k8s-deploy-venv/bin/activate
 python3 -m pip install -r requirements.txt
 ```
 
-2. Create a `.env` file (or export variables in your shell). For GitHub OAuth you typically need:
+2. Create a `.env` file (or export variables in your shell). For GitHub OAuth (see **Note** below) you typically need:
 
 - `OAUTH_CLIENT_ID`
 - `OAUTH_CLIENT_SECRET`
 - `OAUTH_CALLBACK_URL` (for local: `http://localhost:8000/hub/oauth_callback`)
+
+!!! note
+
+    For local development, you can [create a GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) in your own GitHub account.
+    Make sure to set the following:
+    - **Homepage URL**: `http://localhost:8000`.
+    - **Authorization callback URL**: `http://localhost:8000/hub/oauth_callback`.
 
 3. Render the values.yaml file used by Helm:
 
