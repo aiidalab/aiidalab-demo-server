@@ -33,11 +33,11 @@ jupyterhub:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
             CONTAINER_LIFETIME: "{{ CONTAINER_LIFETIME }}"
         cpu:
-            guarantee: 1.5
-            limit: 1.5
+            guarantee: {{ environ('CPU_GUARANTEE') or ('0.25' if LOCAL else '1') }}
+            limit: {{ environ('CPU_LIMIT') or ('0.5' if LOCAL else '1') }}
         memory:
-            guarantee: 5G
-            limit: 5G
+            guarantee: {{ environ('MEMORY_GUARANTEE') or ('512Mi' if LOCAL else '2Gi') }}
+            limit: {{ environ('MEMORY_LIMIT') or ('1Gi' if LOCAL else '2Gi') }}
         storage:
             type: none
             extraVolumes:
@@ -150,7 +150,6 @@ jupyterhub:
                 client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
                 oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
                 allow_all: true
-                #allowed_organizations: ['aiidalab']
                 admin_users:
                     - unkcpz
                     - yakutovicha
