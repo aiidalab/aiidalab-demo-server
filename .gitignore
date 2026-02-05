@@ -9,3 +9,5 @@ values.yaml
 */policy/config-*.yaml
 **/templates/privacy-policy.html
 **/templates/terms-of-use.html
+
+.env
