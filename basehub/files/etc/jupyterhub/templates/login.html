@@ -1,290 +1,367 @@
 {% extends "templates/login.html" %}
-
+<!---->
 {% block title %}Demo AiiDAlab - Login{% endblock %}
 
 <!-- Global site tag (gtag.js) - Google Analytics (comming soon) -->
 
 {% block main %}
-<div class="main-content container">
-  <div class="branding">
-    <div class="logos">
-      <a class="logo" href="https://aiidalab.net" target="_blank">
-        <img src="/hub/static/external/aiidalab-wide-logo.png" alt="AiiDAlab" style="max-height:80px;max-width:100%;">
-      </a>
-      <a class="logo" href="http://nccr-marvel.ch/" target="_blank">
-        <img class="sponsor" src="/hub/static/external/marvel-cropped-logo.png" alt="NCCR MARVEL" style="max-height:100px;max-width:100%">
-      </a>
-    </div>
+
+<!---->
+{% if is_ephemeral %}
+<div id="login-page">
+  <div id="warning-banner" class="alert alert-warning">
+    <h2 id="warning-label">
+      <i class="fa fa-exclamation-triangle"></i>
+      <strong>Attention</strong>
+    </h2>
+    <p>
+      This server is intended for temporary use only and is not suitable for
+      production environments.
+    </p>
+    <strong>
+      All user data will be automatically deleted when the above timer expires.
+    </strong>
   </div>
+  {% endif %}
 
-  {% block login %}
-  <div class="col-sm-4 left-col">
-    <div id="login-box">
-      <h3 align="center">Login to AiiDAlab</h3>
-      {{ super() }}
-    </div>
-
-    <div id="sponsor">
+  <div id="main-container">
+    <main>
+      <div id="logos">
+        <a class="logo" href="https://aiidalab.net" target="_blank">
+          <img
+            class="sponsor-logo"
+            src="/hub/static/external/aiidalab-wide-logo.png"
+            alt="AiiDAlab"
+            style="padding: 10px 0"
+          />
+        </a>
+        <a class="logo" href="http://nccr-marvel.ch/" target="_blank">
+          <img
+            class="sponsor-logo"
+            src="/hub/static/external/marvel-logo.png"
+            alt="NCCR MARVEL"
+          />
+        </a>
+      </div>
+      <header>
+        <h1>Welcome to the AiiDAlab Demo Server</h1>
+        <span class="hint">
+          A pre-configured environment for exploring AiiDAlab's features.
+        </span>
+        <div id="login-button">
+          {% block login %} {{ super() }} {% endblock login %}
+        </div>
+      </header>
+      <section id="platform-information">
+        <div class="info-box">
+          <div class="section-header">
+            <h2>About AiiDAlab</h2>
+            <i id="aiidalab-icon" class="fa"></i>
+          </div>
+          <p>
+            AiiDAlab is an all-in-one Jupyter-based web platform for running
+            materials simulation workflows powered by AiiDA. AiiDAlab can be
+            used both for research and education.
+          </p>
+        </div>
+        <div class="info-box">
+          <div class="section-header">
+            <h2>About AiiDA</h2>
+            <i id="aiida-icon" class="fa"></i>
+          </div>
+          <p>
+            AiiDA is an open-source workflow engine with built-in HPC support,
+            automatic full data provenance, and a rich plugin system for
+            extending and scaling capabilities.
+          </p>
+        </div>
+        <div class="info-box">
+          <div class="section-header">
+            <h2>Resources</h2>
+            <i class="fa fa-info-circle"></i>
+          </div>
+          <ul id="resource-list">
+            <li class="resource-item">
+              <i class="fa fa-video-camera"></i>
+              <a
+                href="https://www.youtube.com/watch?v=Oqo5buk6Om8"
+                target="_blank"
+              >
+                AiiDAlab introduction video
+              </a>
+            </li>
+            <li class="resource-item">
+              <i class="fa fa-book"></i>
+              <a
+                href="https://aiidalab.readthedocs.io/en/latest/"
+                target="_blank"
+              >
+                AiiDAlab documentation
+              </a>
+            </li>
+            <li class="resource-item">
+              <i class="fa fa-laptop"></i>
+              <a
+                href="https://aiidalab.readthedocs.io/en/latest/usage/access/local.html"
+                target="_blank"
+              >
+                Deploy AiiDAlab locally
+              </a>
+            </li>
+            <li class="resource-item">
+              <i class="fa fa-book"></i>
+              <a href="https://aiida.readthedocs.io/en/latest/" target="_blank">
+                AiiDA documentation
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+      <section id="acknowledgement">
+        <hr />
         <p>
-        <small>
-            This work is or has been supported by the <a href="http://nccr-marvel.ch">MARVEL National Centre of Competence in Research</a> and funded by the <a href="http://www.snf.ch/en">Swiss National Science Foundation</a>, the MARKETPLACE project funded by <a href="https://ec.europa.eu/programmes/horizon2020/">Horizon 2020</a> under the H2020-NMBP-25-2017 call (Grant No.&nbsp;760173), as well as by the <a href="http://www.max-centre.eu/">MaX European Centre of Excellence</a> funded by the Horizon 2020 EINFRA-5 program, Grant No.&nbsp;676598, and other <a href="https://www.materialscloud.org/home#partners">Materials Cloud partners</a>.
-        </small>
+          This work is or has been supported by the
+          <a href="http://nccr-marvel.ch">
+            MARVEL National Centre of Competence in Research
+          </a>
+          and funded by the
+          <a href="http://www.snf.ch/en">Swiss National Science Foundation</a>,
+          the MARKETPLACE project funded by
+          <a href="https://ec.europa.eu/programmes/horizon2020/">
+            Horizon 2020
+          </a>
+          under the H2020-NMBP-25-2017 call (Grant No.&nbsp;760173), as well as
+          by the
+          <a href="http://www.max-centre.eu/">
+            MaX European Centre of Excellence
+          </a>
+          funded by the Horizon 2020 EINFRA-5 program, Grant No.&nbsp;676598,
+          and other
+          <a href="https://www.materialscloud.org/home#partners">
+            Materials Cloud partners </a
+          >.
         </p>
-    </div>
-    <div id="acknowledgement">
-      <p>
-      <small>
-        We kindly ask you to cite the following publication if you use AiiDAlab:
-        <p class="reference">
-            A. V. Yakutovich et al., Comp. Mat. Sci. 188, 110165 (2021) <a href="https://doi.org/10.1016/j.commatsci.2020.110165" target="_blank">DOI:10.1016/j.commatsci.2020.110165</a>
+        <div id="citing">
+          <p>
+            <strong>
+              We kindly ask you to cite the following publication if you use
+              AiiDA:
+            </strong>
+          </p>
+          <p>
+            A. V. Yakutovich et al., Comp. Mat. Sci. 188, 110165 (2021)
+            <a
+              href="https://doi.org/10.1016/j.commatsci.2020.110165"
+              target="_blank"
+            >
+              DOI:10.1016/j.commatsci.2020.110165
+            </a>
+          </p>
+        </div>
+        <hr />
+      </section>
+      {% endblock main %}
+      <!---->
+      {% block footer %}
+      <footer>
+        <p>
+          &copy; 2026 AiiDAlab team |
+          <a href="https://aiidalab.net" target="_blank">aiidalab.net</a> |
+          <a href="https://aiida.net" target="_blank">aiida.net</a>
         </p>
-      </small>
-      </p>
-    </div>
-
-
-    <div class="sponsors row align-items-center justify-content-around flex-wrap"></div>
-  </div>
-  {% endblock login %}
-
-  <div class="container col-sm-7">
-    <h1>Welcome to the AiiDAlab demo server!</h1>
-    <p> This AiiDAlab server is deployed and maintained by the <a href="https://www.aiidalab.net/about/" target="_blank">AiiDAlab team</a>.</p>
-    <p> The goal of the server is to provide a platform for users to try out AiiDAlab without the need to install it locally.</p>
-    <div style="border: 2px solid red; padding: 10px; color: red;">
-      <p> This server is intended for temporary use only and is not suitable for production environments. All user data will be automatically deleted 12 hours after the first login. </p>
-    </div>
-
-    <h2>Login to AiiDAlab</h2>
-    <p>
-      The service is available to anyone with GitHub credentials.
-      Click the "Sign in with GitHub" button to login.
-    </p>
-
-    <h2 id="gettingstartedwithaiidalab">Getting started with AiiDAlab</h2>
-    <p>
-      <a href="https://aiidalab.net">AiiDAlab</a> is a web environment to run materials simulation online. It is based on <a href="https://jupyter.org/index.html">Jupyter</a> as the web backend, and <a href="https://aiida.net">AiiDA</a> as the workflow engine.
-    </p>
-
-    <p>Some resources to learn AiiDAlab:</p>
-    <ul>
-      <li>
-        <a href="https://aiidalab.readthedocs.io/en/latest/"> Our official documentation</a>, for a more detailed introduction and hands on guide.
-      </li>
-      <li>
-        An <a href="https://www.youtube.com/watch?v=Oqo5buk6Om8">AiiDAlab introduction</a> video for an overview.
-      </li>
-    </ul>
+      </footer>
+      {% endblock footer %}
+    </main>
   </div>
 </div>
 
-{% endblock main %}
-
 {% block stylesheet %}
+<!---->
 {{ super() }}
 <style>
-  .main-content {
-    margin-left: auto;
-    margin-right: auto;
+  html,
+  body {
+    height: 100%;
   }
 
-  .logos {
+  body {
+    background: url("/hub/static/external/background.jpg") center / cover
+      no-repeat;
+  }
+
+  a {
+    color: #a94442;
+  }
+
+  #login-page,
+  #main-container,
+  main {
     display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    height: 100%;
+  }
+
+  #login-page {
+    max-width: 900px;
+    margin: auto;
+    font-family: "segoe ui", Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #warning-banner {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: 0;
+    box-shadow: 0 0 5px #fcf8e3;
+  }
+
+  #warning-label {
+    margin-top: 0;
+  }
+
+  #main-container {
+    padding: 4rem 5rem 1rem;
+    border: 1px solid #ccc;
+    border-radius: 4px 4px 0 0;
+    background-color: #fff;
+    box-shadow: 0 0 5px #fff;
+  }
+
+  #logos {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: space-around;
-    margin: auto 30px;
     flex-wrap: nowrap;
+    gap: 3rem;
   }
 
-  .left-col {
-    margin-top: 20px;
-  }
-
-  .brand {
-    flex-shrink: 2;
-  }
-
-  @media all and (max-width: 500px) {
-    .logos {
-      /* On small screens, we are no longer using row direction but column */
-      /* flex-direction: column; */
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-    .branding img {
-      justify-content: center;
-      max-width: 100%;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .logos {
-      justify-content: space-around;
-    }
-    .logo {
-      flex-basis: 50%;
-    }
-  }
-
-  @media (max-width: 1400px) {
-    .logos {
-      justify-content: space-around;
-    }
-    .main-content {
-      width: 100%;
-    }
-  }
-
-  @media (min-width: 1401px) {
-    .main-content {
-      width: 1400px;
-    }
-  }
-
-  .sponsors {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
-  }
-
-  .sponsors-footer {
-    height: 300px;
-  }
-
-  .sponsor {
-    padding: 10px;
+  .sponsor-logo {
+    min-height: 50px;
+    max-height: 80px;
     max-width: 100%;
-    max-height: 150px;
   }
 
-  #login-box {
-    border: 1px solid silver;
-    padding: 10px;
-    margin-bottom: 30px;
-    /*   box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    -webkit-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
-    -moz-box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19); */
-    border-radius: 5px;
-    flex-grow: 2;
+  header {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+    margin: 1rem 0;
   }
 
-  .body {
-    padding-bottom: 50px;
+  header h1 {
+    margin: 0;
   }
 
-  #login-main .auth-form-body {
-    border-color: rgb(0, 124, 186);
-    color: white;
+  #login-button {
+    margin: 0 auto;
   }
 
   #login-main {
-    margin-top: 5%;
-    height: inherit;
-    width: inherit;
-    margin-bottom: 5%;
+    width: auto;
+    height: unset;
+    display: flex;
+    justify-content: center;
   }
 
-  #login-main .container {
-    width: 50%;
-  }
-
-  footer {
-    border-top: 1px solid silver;
-    padding: 10px;
-    bottom: 0;
-    position: fixed;
-    width: 100%;
-  }
-
-  footer p {
-    margin: 0 auto 0 auto;
-    text-align: center;
-  }
-
-  #login-main form {
-    vertical-align: top;
-  }
-
-  #login-main .auth-form-header {
-    color: white;
-    background: rgb(219, 170, 0);
-    border: 1px solid;
-    border-color: rgb(0, 124, 186);
+  #login-main .service-login {
+    margin: 0;
   }
 
   #insecure-login-warning {
-    color: black;
+    display: none;
   }
 
-  .btn-jupyter.active,
-  .btn-jupyter:active,
-  .open>.dropdown-toggle.btn-jupyter {
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px #a88400;
-    border-color: #a88400;
-    outline-color: #a88400;
+  #platform-information {
+    display: flex;
+    justify-content: space-between;
+    gap: 6rem;
   }
 
-  #login-main .form-control:focus,
-  #login-main input[type=submit]:focus {
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, .075), 0 0 8px rgb(219, 170, 0);
-    border-color: rgb(219, 170, 0);
-    outline-color: rgb(219, 170, 0);
+  .info-box {
+    width: fit-content;
   }
 
-  .btn-jupyter {
-    color: #fff;
-    background-color: #F37524;
-    border-color: #E34F21;
-    padding: 10px;
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
   }
 
-  .col-1 {
-    width: 8.33%;
+  .section-header h2,
+  .section-header i {
+    margin-top: 0;
+    font-size: 24px;
   }
 
-  .col-2 {
-    width: 16.66%;
+  #aiidalab-icon {
+    background: url("/hub/static/external/aiidalab-icon.svg") no-repeat center;
+    background-size: contain;
+    width: 24px;
+    height: 24px;
+    display: inline-block;
   }
 
-  .col-3 {
-    width: 25%;
+  #aiida-icon {
+    background: url("/hub/static/external/aiida-icon.svg") no-repeat center;
+    background-size: contain;
+    width: 24px;
+    height: 24px;
+    display: inline-block;
   }
 
-  .col-4 {
-    width: 33.33%;
+  #resource-list {
+    list-style: none;
+    padding-left: 2px;
+    white-space: nowrap;
   }
 
-  .col-5 {
-    width: 41.66%;
+  .resource-item {
+    margin-bottom: 5px;
   }
 
-  .col-6 {
-    width: 50%;
+  .resource-item i {
+    margin-right: 5px;
   }
 
-  .col-7 {
-    width: 58.33%;
+  #acknowledgement {
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: smaller;
   }
 
-  .col-8 {
-    width: 66.66%;
+  #acknowledgement hr {
+    border-color: black;
   }
 
-  .col-9 {
-    width: 75%;
+  #acknowledgement hr:first-child {
+    margin-top: 0;
   }
 
-  .col-10 {
-    width: 83.33%;
+  #acknowledgement hr:last-child {
+    margin-bottom: 0;
   }
 
-  .col-11 {
-    width: 91.66%;
+  #citing p:first-child {
+    margin-bottom: 4px;
   }
 
-  .col-12 {
-    width: 100%;
+  footer {
+    text-align: center;
+  }
+
+  @media (max-width: 480px) {
+    .logos {
+      flex-direction: column;
+    }
+  }
+
+  @media (max-width: 768px) {
+    #platform-information {
+      flex-direction: column;
+      gap: unset;
+    }
   }
 </style>
 {% endblock %}
