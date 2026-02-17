@@ -5,7 +5,6 @@
 <!-- Global site tag (gtag.js) - Google Analytics (comming soon) -->
 
 {% block main %}
-
 <div id="login-page">
   {% if is_ephemeral %}
   <div id="warning-banner" class="alert alert-warning">
@@ -18,7 +17,7 @@
       production environments.
     </p>
     <strong>
-      All user data will be automatically deleted when the above timer expires.
+      All user data will be automatically deleted when the timer above expires.
     </strong>
   </div>
   {% endif %}
@@ -42,6 +41,7 @@
           />
         </a>
       </div>
+
       <header>
         <h1>Welcome to the AiiDAlab Demo Server</h1>
         <span class="hint">
@@ -51,32 +51,35 @@
           {% block login %} {{ super() }} {% endblock login %}
         </div>
       </header>
+
       <section id="platform-information">
         <div class="info-box">
           <div class="section-header">
-            <h3>About AiiDAlab</h3>
+            <h2>About AiiDAlab</h2>
             <i id="aiidalab-icon" class="fa"></i>
           </div>
           <p>
-            AiiDAlab is an all-in-one Jupyter-based web platform for running
-            materials simulation workflows powered by AiiDA. AiiDAlab can be
-            used both for research and education.
+            <a href="https://aiidalab.net" target="_blank">AiiDAlab</a> is an
+            all-in-one Jupyter-based web platform for running materials
+            simulation workflows powered by AiiDA. AiiDAlab can be used both for
+            research and education.
           </p>
         </div>
         <div class="info-box">
           <div class="section-header">
-            <h3>About AiiDA</h3>
+            <h2>About AiiDA</h2>
             <i id="aiida-icon" class="fa"></i>
           </div>
           <p>
-            AiiDA is an open-source workflow engine with built-in HPC support,
+            <a href="https://aiida.net" target="_blank">AiiDA</a>
+            is an open-source workflow engine with built-in HPC support,
             automatic full data provenance, and a rich plugin system for
             extending and scaling capabilities.
           </p>
         </div>
         <div class="info-box">
           <div class="section-header">
-            <h3>Resources</h3>
+            <h2>Resources</h2>
             <i class="fa fa-info-circle"></i>
           </div>
           <ul id="resource-list">
@@ -116,9 +119,10 @@
           </ul>
         </div>
       </section>
+
       <section id="quantum-espresso">
         <div class="section-header">
-          <h3>The Quantum ESPRESSO (QE) App</h3>
+          <h2>The Quantum ESPRESSO (QE) App</h2>
         </div>
         <p>
           The demo server is pre-configured with the AiiDAlab
@@ -137,6 +141,47 @@
           users in the field of computational materials science.
         </p>
       </section>
+
+      <section id="faq">
+        <div class="section-header">
+          <h2>Any Questions?</h2>
+        </div>
+
+        <p>
+          If you have any questions or need assistance, please refer to the
+          <a href="/faq">FAQ</a> page. If you cannot find your question, please
+          <a
+            href="mailto:aiidalab@materialscloud.org?subject=[HELP] AiiDAlab Demo Server"
+            >send us an email</a
+          >.
+        </p>
+        For technical issues, please open an issue on one of the following
+        GitHub repositories:
+        <ul>
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab/issues"
+              target="_blank"
+              >AiiDAlab</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab-qe/issues"
+              target="_blank"
+              >AiiDAlab Quantum ESPRESSO app</a
+            >
+          </li>
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab-demo-server/issues"
+              target="_blank"
+              >AiiDAlab Demo Server</a
+            >
+          </li>
+        </ul>
+      </section>
+
       <section id="acknowledgement">
         <hr />
         <p>
@@ -165,7 +210,7 @@
             href="https://www.materialscloud.org/home#partners"
             target="_blank"
           >
-            Materials Cloud partners </a
+            Materials Cloud partners</a
           >.
         </p>
         <div class="citations">
@@ -202,21 +247,20 @@
         </div>
         <hr />
       </section>
-      {% endblock main %}
-      <!---->
-      {% block footer %}
-      <footer>
-        <p>
-          &copy; 2026 AiiDAlab team |
-          <a href="https://aiidalab.net" target="_blank">aiidalab.net</a> |
-          <a href="https://aiida.net" target="_blank">aiida.net</a>
-        </p>
-      </footer>
-      {% endblock footer %}
     </main>
+
+    <footer>
+      <p>
+        &copy; 2026 AiiDAlab team |
+        <a href="https://aiidalab.net" target="_blank">aiidalab.net</a> |
+        <a href="https://aiida.net" target="_blank">aiida.net</a>
+      </p>
+    </footer>
   </div>
 </div>
+{% endblock main %}
 
+<!---->
 {% block stylesheet %}
 <!---->
 {{ super() }}
@@ -227,7 +271,7 @@
   }
 
   body {
-    background: url("/hub/static/external/background.jpg") center / 250%
+    background: url("/hub/static/external/background.jpg") center / 300%
       no-repeat;
   }
 
@@ -244,9 +288,10 @@
   }
 
   #login-page {
-    max-width: 900px;
+    max-width: 1200px;
     margin: auto;
     font-family: "segoe ui", Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 20px;
   }
 
   #warning-banner {
@@ -272,14 +317,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 3rem;
   }
 
   .sponsor-logo {
-    min-height: 50px;
     max-height: 80px;
-    max-width: 100%;
   }
 
   header {
@@ -291,6 +334,7 @@
   }
 
   header h1 {
+    font-size: 44px;
     margin: 0;
   }
 
@@ -329,10 +373,10 @@
     gap: 1rem;
   }
 
-  .section-header h3,
+  .section-header h2,
   .section-header i {
     margin-top: 0;
-    font-size: 24px;
+    font-size: 30px;
   }
 
   #aiidalab-icon {
@@ -365,8 +409,10 @@
     margin-right: 5px;
   }
 
-  #quantum-espresso {
-    max-width: 500px;
+  #quantum-espresso,
+  #faq,
+  #acknowledgement {
+    max-width: 800px;
     margin: 0 auto;
   }
 
@@ -374,10 +420,12 @@
     justify-content: center;
   }
 
+  #faq ul {
+    margin-bottom: 0;
+  }
+
   #acknowledgement {
-    max-width: 600px;
-    margin: 0 auto;
-    font-size: smaller;
+    font-size: 15px;
   }
 
   #acknowledgement hr:first-child {
@@ -402,10 +450,15 @@
     }
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 992px) {
     #platform-information {
       flex-direction: column;
       gap: unset;
+    }
+
+    #quantum-espresso,
+    #faq {
+      max-width: unset;
     }
   }
 </style>
