@@ -36,8 +36,8 @@ jupyterhub:
             guarantee: {{ environ('CPU_GUARANTEE') or ('0.25' if LOCAL else '1.5') }}
             limit: {{ environ('CPU_LIMIT') or ('0.5' if LOCAL else '1.5') }}
         memory:
-            guarantee: {{ environ('MEMORY_GUARANTEE') or ('512Mi' if LOCAL else '5Gi') }}
-            limit: {{ environ('MEMORY_LIMIT') or ('1Gi' if LOCAL else '5Gi') }}
+            guarantee: {{ environ('MEMORY_GUARANTEE') or ('512M' if LOCAL else '5G') }}
+            limit: {{ environ('MEMORY_LIMIT') or ('1G' if LOCAL else '5G') }}
         storage:
             type: none
             extraVolumes:
