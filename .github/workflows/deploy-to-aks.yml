@@ -52,6 +52,8 @@ jobs:
         OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
         OAUTH_CALLBACK_URL: ${{ secrets.OAUTH_CALLBACK_URL }}
         K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+        PYTHON_VERSION: ${{ vars.PYTHON_VERSION }}
+        CONTAINER_LIFETIME: ${{ vars.CONTAINER_LIFETIME }}
 
     - name: Connect to AKS
       run: az aks get-credentials --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}

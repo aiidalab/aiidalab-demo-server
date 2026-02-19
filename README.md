@@ -186,12 +186,10 @@ curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
 
 ## Generating policy documents for an AiiDAlab deployment
 
-In the `basehub/policy` folder:
-
-- Fill out the required variables in `config.yaml`
-- Run `source generate.sh` to generate the policy documents
-
-See `basehub/policy/README.md` for more information.
+Policy document templates are available at https://github.com/aiidalab/aiidalab-deployment-files.
+Follow the instructions there to generate the policy documents for your deployment.
+You can then deploy the generated documents in `basehub/files/etc/jupyterhub/templates`.
+Once deployed, set the `INCLUDE_POLICIES` environment variable to `true`. The deployment procedure will then introduce links to the documents in the JupyterHub UI.
 
 ## Install JupyterHub
 
@@ -205,23 +203,24 @@ source k8s-deploy-venv/bin/activate
 
 ## Install the requirements
 python3 -m pip install -r requirements.txt
+
 ```
 
-Render the `values.yaml` file with the following command:
-
-```bash
-jinja2 --format=env basehub/values.yaml.j2 > basehub/values.yaml
-```
-
-The following environment variables are required to be set:
+The `values.yaml` file requires the following environment variables to be set:
 
 - `K8S_NAMESPACE`: The namespace where the JupyterHub will be installed, e.g. `production`, `staging`.
 - `OAUTH_CLIENT_ID`: The client ID of the GitHub app.
 - `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
 - `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
 
-We use GitHub oauthenticator, the users will be able to login with their GitHub account.
+We use GitHub oauthenticator to allow users to login with their GitHub account.
 The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
+
+Render the `values.yaml` file with the following command:
+
+```bash
+make generate-values LOCAL=false
+```
 
 To deploy the JupyterHub, run the following command:
 
@@ -267,3 +266,89 @@ proxy:
     letsencrypt:
       contactEmail: <your-email-address>
 ```
+
+## Local deployment for development
+
+For quick iteration on the demo server UI (templates, static assets, chart wiring), you can deploy the Helm chart to a local Kubernetes cluster (recommended: [kind](https://kind.sigs.k8s.io/)).
+
+### Prerequisites
+
+- `kind`
+- `kubectl`
+- `helm`
+- `make`
+- `jinja2` (from `jinja2-cli`, installed via `requirements.txt`)
+
+See [here](https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries) for `kind` installation instructions.
+
+### Configure and generate values
+
+This repo uses a Makefile-based workflow for local deployment.
+
+1. Create a python environment and install the templating dependencies, for example:
+
+```bash
+python3 -m venv k8s-deploy-venv
+source k8s-deploy-venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+2. Create a `.env` file (or export variables in your shell). For GitHub OAuth (see **Note** below) you typically need:
+
+- `OAUTH_CLIENT_ID`
+- `OAUTH_CLIENT_SECRET`
+- `OAUTH_CALLBACK_URL` (for local: `http://localhost:8000/hub/oauth_callback`)
+
+!!! note
+
+    For local development, you can [create a GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) in your own GitHub account.
+    Make sure to set the following:
+    - **Homepage URL**: `http://localhost:8000`.
+    - **Authorization callback URL**: `http://localhost:8000/hub/oauth_callback`.
+
+3. Render the values.yaml file used by Helm:
+
+```bash
+make generate-values
+```
+
+By default this writes `basehub/values.yaml` from `basehub/values.yaml.j2` with `LOCAL=True`.
+
+### Run
+
+```bash
+make up
+```
+
+Then open `http://localhost:8000`.
+
+If `http://localhost:8000` is not reachable (common on kind without port mappings), run:
+
+```bash
+make port-forward
+```
+
+### Applying changes while developing
+
+Edits to Helm values, templates, and the bundled static assets are not hot-reloaded automatically.
+Re-apply changes with:
+
+```bash
+make refresh
+```
+
+### Tear down
+
+```bash
+make down
+```
+
+### Useful overrides
+
+You can override defaults at invocation time, e.g.:
+
+```bash
+make NAMESPACE=local RELEASE_NAME=aiidalab-demo-server up
+```
+
+Run `make help` to see available targets and defaults.
