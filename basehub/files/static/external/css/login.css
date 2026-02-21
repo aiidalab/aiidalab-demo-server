@@ -1,0 +1,195 @@
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: url("/hub/static/external/background.jpg") center / 300% no-repeat;
+}
+
+a {
+  color: #a94442;
+}
+
+#login-page,
+#main-container,
+main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+#login-page {
+  max-width: 1200px;
+  margin: auto;
+  font-family: "segoe ui", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 20px;
+}
+
+#warning-banner {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  margin-bottom: 0;
+  box-shadow: 0 0 5px #fcf8e3;
+}
+
+#warning-label {
+  margin-top: 0;
+}
+
+#main-container {
+  padding: 4rem 5rem 1rem;
+  border-radius: 4px 4px 0 0;
+  background-color: #fff;
+  box-shadow: 0 0 5px #fff;
+}
+
+#logos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3rem;
+}
+
+.sponsor-logo {
+  max-height: 80px;
+}
+
+header {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+header h1 {
+  font-size: 44px;
+  margin: 0;
+}
+
+#login-button {
+  margin: 0 auto;
+}
+
+#login-main {
+  width: auto;
+  height: unset;
+  display: flex;
+  justify-content: center;
+}
+
+#login-main .service-login {
+  margin: 0;
+}
+
+#insecure-login-warning {
+  display: none;
+}
+
+#platform-information {
+  display: flex;
+  justify-content: space-between;
+  gap: 6rem;
+}
+
+.info-box {
+  width: fit-content;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.section-header h2,
+.section-header i {
+  margin-top: 0;
+  font-size: 30px;
+}
+
+#aiidalab-icon {
+  background: url("/hub/static/external/aiidalab-icon.svg") no-repeat center;
+  background-size: contain;
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+}
+
+#aiida-icon {
+  background: url("/hub/static/external/aiida-icon.svg") no-repeat center;
+  background-size: contain;
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+}
+
+#resource-list {
+  list-style: none;
+  padding-left: 2px;
+  white-space: nowrap;
+}
+
+.resource-item {
+  margin-bottom: 5px;
+}
+
+.resource-item i {
+  margin-right: 5px;
+}
+
+#quantum-espresso,
+#faq,
+#acknowledgement {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+#quantum-espresso .section-header {
+  justify-content: center;
+}
+
+#faq ul {
+  margin-bottom: 0;
+}
+
+#acknowledgement {
+  font-size: 15px;
+}
+
+#acknowledgement hr:first-child {
+  margin-top: 0;
+}
+
+#acknowledgement hr:last-child {
+  margin-bottom: 0;
+}
+
+.citations p:first-child {
+  margin-bottom: 4px;
+}
+
+footer {
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .logos {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 992px) {
+  #platform-information {
+    flex-direction: column;
+    gap: unset;
+  }
+
+  #quantum-espresso,
+  #faq {
+    max-width: unset;
+  }
+}
