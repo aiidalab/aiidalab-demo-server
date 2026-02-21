@@ -11,6 +11,7 @@ metadata:
   name: hub-external
 data:
   {{- (.Files.Glob "files/static/external/css/*").AsConfig | nindent 2 }}
+  {{- (.Files.Glob "files/static/external/js/*").AsConfig | nindent 2 }}
 binaryData:
   {{- $root := . }}
   {{- range $path, $bytes := .Files.Glob "files/static/external/images/*" }}
