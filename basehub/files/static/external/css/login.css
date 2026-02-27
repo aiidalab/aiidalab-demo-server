@@ -4,69 +4,73 @@ body {
 }
 
 body {
-  background: url("/hub/static/external/background.jpg") center / 300% no-repeat;
+  position: relative;
+  background: white;
+}
+
+.navbar {
+  margin-bottom: 0;
+}
+
+#bg-graph-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
 
 a {
   color: #a94442;
 }
 
-#login-page,
-#main-container,
-main {
+#login-page {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-}
-
-#login-page {
+  gap: 3rem;
   max-width: 1200px;
   margin: auto;
   font-family: "segoe ui", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 20px;
+  font-size: 18px;
+  padding: 4rem 8rem;
+  --side-pad: 8rem;
+
+  /* Fade mostly within the side padding: transparent at the outer edge,
+     fully white by the inner padding boundary. */
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0,
+    white var(--side-pad),
+    white calc(100% - var(--side-pad)),
+    rgba(255, 255, 255, 0) 100%
+  );
 }
 
-#warning-banner {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-  margin-bottom: 0;
-  box-shadow: 0 0 5px #fcf8e3;
-}
-
-#warning-label {
-  margin-top: 0;
-}
-
-#main-container {
-  padding: 4rem 5rem 1rem;
-  border-radius: 4px 4px 0 0;
-  background-color: #fff;
-  box-shadow: 0 0 5px #fff;
-}
-
-#logos {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 3rem;
-}
-
-.sponsor-logo {
-  max-height: 80px;
+@media (max-width: 1200px) {
+  #login-page {
+    padding: 2rem;
+    --side-pad: 2rem;
+  }
 }
 
 header {
   display: flex;
   flex-direction: column;
   text-align: center;
-  gap: 1rem;
-  margin: 1rem 0;
+  gap: 2rem;
 }
 
-header h1 {
-  font-size: 44px;
+#brand-logo {
+  padding: 0;
+  text-align: center;
+}
+
+#brand-logo img {
+  width: 100%;
+  max-width: 800px;
+}
+
+#title h1 {
+  font-size: 40px;
   margin: 0;
 }
 
@@ -89,14 +93,31 @@ header h1 {
   display: none;
 }
 
+#warning-banner {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  margin: 0 auto;
+  box-shadow: 0 0 5px #fcf8e3;
+  width: fit-content;
+  font-size: 16px;
+}
+
+#warning-label {
+  margin-top: 0;
+}
+
 #platform-information {
   display: flex;
   justify-content: space-between;
-  gap: 6rem;
+  gap: 3rem;
 }
 
 .info-box {
-  width: fit-content;
+  box-shadow: 1px 1px 10px #f5f5f5;
+  padding: 3rem;
+  background-color: #f5f5f5;
+  border-radius: 2rem;
 }
 
 .section-header {
@@ -108,20 +129,20 @@ header h1 {
 .section-header h2,
 .section-header i {
   margin-top: 0;
-  font-size: 30px;
+  font-size: 28px;
 }
 
 #aiidalab-icon {
-  background: url("/hub/static/external/aiidalab-icon.svg") no-repeat center;
-  background-size: contain;
-  width: 24px;
+  background: url("/hub/static/external/aiidalab-icon.svg");
+  background-size: cover;
+  width: 28px;
   height: 24px;
   display: inline-block;
 }
 
 #aiida-icon {
-  background: url("/hub/static/external/aiida-icon.svg") no-repeat center;
-  background-size: contain;
+  background: url("/hub/static/external/aiida-icon.svg");
+  background-size: cover;
   width: 24px;
   height: 24px;
   display: inline-block;
@@ -144,7 +165,7 @@ header h1 {
 #quantum-espresso,
 #faq,
 #acknowledgement {
-  max-width: 800px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -168,28 +189,46 @@ header h1 {
   margin-bottom: 0;
 }
 
-.citations p:first-child {
+#citations p:first-child {
   margin-bottom: 4px;
+}
+
+#citations ul {
+  font-size: 14px;
+}
+
+#sponsors {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+}
+
+#sponsors img {
+  width: 50%;
 }
 
 footer {
   text-align: center;
 }
 
-@media (max-width: 480px) {
-  .logos {
-    flex-direction: column;
-  }
-}
-
 @media (max-width: 992px) {
   #platform-information {
     flex-direction: column;
-    gap: unset;
   }
 
   #quantum-espresso,
   #faq {
     max-width: unset;
+  }
+}
+
+@media (max-width: 1200px) {
+  #bg-graph-canvas {
+    display: none;
+  }
+
+  #login-page {
+    background: white;
   }
 }
