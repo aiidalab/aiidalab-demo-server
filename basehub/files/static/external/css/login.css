@@ -115,9 +115,10 @@ header {
 
 .info-box {
   box-shadow: 1px 1px 10px #f5f5f5;
-  padding: 3rem;
+  padding: 2.5rem;
   background-color: #f5f5f5;
   border-radius: 2rem;
+  font-size: 18px;
 }
 
 .section-header {
@@ -169,16 +170,8 @@ header {
   margin: 0 auto;
 }
 
-#quantum-espresso .section-header {
-  justify-content: center;
-}
-
 #faq ul {
   margin-bottom: 0;
-}
-
-#acknowledgement {
-  font-size: 15px;
 }
 
 #acknowledgement hr:first-child {
@@ -189,11 +182,7 @@ header {
   margin-bottom: 0;
 }
 
-#citations p:first-child {
-  margin-bottom: 4px;
-}
-
-#citations ul {
+.citations ul {
   font-size: 14px;
 }
 

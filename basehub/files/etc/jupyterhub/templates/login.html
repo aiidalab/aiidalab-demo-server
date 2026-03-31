@@ -21,15 +21,12 @@
       </a>
     </div>
     <div id="title">
-      <h1>Welcome to the AiiDAlab Demo Server</h1>
-      <span class="hint">
-        A pre-configured environment for exploring AiiDAlab
-      </span>
+      <h1>{{ title }}</h1>
+      <span class="hint">{{ subtitle }}</span>
     </div>
     <div id="login-button">
       {% block login %} {{ super() }} {% endblock login %}
     </div>
-    {% if is_ephemeral %}
     <div id="warning-banner" class="alert alert-warning">
       <h2 id="warning-label">
         <i class="fa fa-exclamation-triangle"></i>
@@ -44,7 +41,6 @@
         expires.
       </strong>
     </div>
-    {% endif %}
   </header>
 
   <section id="platform-information">
@@ -108,69 +104,51 @@
     </div>
   </section>
 
-  <section id="quantum-espresso">
-    <div class="info-box">
-      <div class="section-header">
-        <h2>The Quantum ESPRESSO (QE) App</h2>
+  {% if include_qe %}
+    <section id="quantum-espresso">
+      <div class="info-box">
+        <div class="section-header">
+          <h2>The Quantum ESPRESSO (QE) App</h2>
+        </div>
+        <p>
+          This server is pre-configured with the AiiDAlab
+          <a href="https://aiidalab-qe.readthedocs.io/" target="_blank"
+            >Quantum ESPRESSO (QE) app</a
+          >. The app provides a user-friendly interface to set up and run
+          <a href="https://www.quantum-espresso.org/" target="_blank"
+            >Quantum ESPRESSO</a
+          >
+          calculations, which are widely used for electronic-structure and
+          materials modeling. The app allows its users to easily configure input
+          parameters, submit calculations, and visualize results, making it an
+          ideal tool for beginners and experienced users, as well as instructors
+          and students, in the field of computational materials science.
+        </p>
+        <div class="citations">
+          <h4>Please cite:</h4>
+          <ul>
+            <li>
+              Wang, X., Bainglass, E., Bonacci, M., Ortega-Guerrero, A. et al.
+              <em>npj. Comput. Mater.</em> <b>12</b>, 72 (2026)
+              <br />
+              <a
+                href="https://doi.org/10.1038/s41524-025-01936-4"
+                target="_blank"
+              >
+                DOI:10.1038/s41524-025-01936-4
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
-      <p>
-        The demo server is pre-configured with the AiiDAlab
-        <a href="https://aiidalab-qe.readthedocs.io/" target="_blank"
-          >Quantum ESPRESSO (QE) app</a
-        >
-        . The app provides a user-friendly interface to set up and run
-        <a href="https://www.quantum-espresso.org/" target="_blank"
-          >Quantum ESPRESSO</a
-        >
-        calculations, which are widely used for electronic-structure and
-        materials modeling. The app allows its users to easily configure input
-        parameters, submit calculations, and visualize results, making it an
-        ideal tool for beginners and experienced users, as well as instructors
-        and students, in the field of computational materials science.
-      </p>
-    </div>
-  </section>
-
-  <section id="faq">
-    <div class="info-box">
-      <div class="section-header">
-        <h2>Any Questions?</h2>
-      </div>
-      <p>
-        If you have any questions or need assistance, please refer to the
-        <a href="/faq">FAQ</a> page. If you cannot find your question, please
-        <a
-          href="mailto:aiidalab@materialscloud.org?subject=[HELP] AiiDAlab Demo Server"
-          >send us an email</a
-        >.
-      </p>
-      For technical issues, please open an issue at:
-      <ul>
-        <li>
-          <a href="https://github.com/aiidalab/aiidalab/issues/new" target="_blank"
-            >AiiDAlab</a
-          >
-        </li>
-        <li>
-          <a
-          href="https://github.com/aiidalab/aiidalab-demo-server/issues/new"
-          target="_blank"
-          >AiiDAlab Demo Server</a
-          >
-        </li>
-        <li>
-          <a
-            href="https://github.com/aiidalab/aiidalab-qe/issues/new"
-            target="_blank"
-            >AiiDAlab Quantum ESPRESSO app</a
-          >
-        </li>
-      </ul>
-    </div>
-  </section>
+    </section>
+  {% endif %}
 
   <section id="acknowledgement">
     <div class="info-box">
+      <div class="section-header">
+        <h2>Acknowledgements</h2>
+      </div>
       <p>
         This work is or has been supported by the
         <a href="http://nccr-marvel.ch" target="_blank">
@@ -178,7 +156,7 @@
         </a>
         and funded by the
         <a href="http://www.snf.ch/en" target="_blank"
-          >Swiss National Science Foundation</a
+        >Swiss National Science Foundation</a
         >, the MARKETPLACE project funded by
         <a href="https://ec.europa.eu/programmes/horizon2020/" target="_blank">
           Horizon 2020
@@ -192,15 +170,10 @@
         other
         <a href="https://www.materialscloud.org/home#partners" target="_blank">
           Materials Cloud partners</a
-        >.
-      </p>
-      <div id="citations">
-        <p>
-          <strong>
-            If you use AiiDAlab or the QE app in your research, please cite the
-            following publications:
-          </strong>
+          >.
         </p>
+      <div class="citations">
+        <h4>Please cite:</h4>
         <ul>
           <li>
             A. V. Yakutovich et al. <em>Comp. Mat. Sci.</em> <b>188</b>, 110165
@@ -213,19 +186,50 @@
               DOI:10.1016/j.commatsci.2020.110165
             </a>
           </li>
-          <li>
-            Wang, X., Bainglass, E., Bonacci, M., Ortega-Guerrero, A. et al.
-            <em>npj. Comput. Mater.</em> <b>12</b>, 72 (2026)
-            <br />
-            <a
-              href="https://doi.org/10.1038/s41524-025-01936-4"
-              target="_blank"
-            >
-              DOI:10.1038/s41524-025-01936-4
-            </a>
-          </li>
         </ul>
       </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="info-box">
+      <div class="section-header">
+        <h2>Any Questions?</h2>
+      </div>
+      <p>
+        If you have any questions or need assistance, please refer to the
+        <a href="/faq">FAQ</a> page. If you cannot find your question, please
+        <a
+          href="mailto:{{ support_emails | join(',') }}?subject=[HELP] AiiDAlab PSI Server"
+          >send us an email</a
+        >.
+      </p>
+      For technical issues, please open an issue at:
+      <ul>
+        <li>
+          <a
+            href="https://github.com/aiidalab/aiidalab/issues/new"
+            target="_blank"
+            >AiiDAlab</a
+          >
+        </li>
+        <li>
+          <a
+            href="https://github.com/aiidalab/aiidalab-demo-server/issues/new"
+            target="_blank"
+            >AiiDAlab Demo Server</a
+          >
+        </li>
+        {% if include_qe %}
+        <li>
+          <a
+            href="https://github.com/aiidalab/aiidalab-qe/issues/new"
+            target="_blank"
+            >AiiDAlab QE app</a
+          >
+        </li>
+        {% endif %}
+      </ul>
     </div>
   </section>
 

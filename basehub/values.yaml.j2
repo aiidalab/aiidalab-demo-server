@@ -84,7 +84,10 @@ jupyterhub:
                 c.JupyterHub.template_vars = getattr(c.JupyterHub, 'template_vars', {})
                 c.JupyterHub.template_vars.update({
                     'include_policies': {{ INCLUDE_POLICIES }},
-                    'is_ephemeral': {{ 'True' if CONTAINER_LIFETIME|length > 0 else 'False' }},
+                    'title': "Welcome to the AiiDAlab Demo Server",
+                    'subtitle': "A pre-configured environment for exploring AiiDAlab",
+                    'include_qe': True,
+                    'support_emails': ["aiidalab@materialscloud.org"],
                 })
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
