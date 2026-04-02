@@ -12,6 +12,21 @@ body {
   margin-bottom: 0;
 }
 
+.navbar #institution-logo a {
+  padding: 0;
+  margin: 0;
+  margin-top: 6px;
+}
+
+.navbar #institution-logo a:hover,
+.navbar #institution-logo a:focus {
+  background: unset;
+}
+
+.navbar #institution-logo img {
+  height: 28px;
+}
+
 #bg-graph-canvas {
   position: fixed;
   inset: 0;
@@ -207,6 +222,7 @@ footer {
   }
 
   #quantum-espresso,
+  #acknowledgement,
   #faq {
     max-width: unset;
   }

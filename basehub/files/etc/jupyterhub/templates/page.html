@@ -68,7 +68,7 @@
               {% block login_widget %}
                 <span id="login_widget">
                   {% if user %}
-		    <p class="navbar-text">{{user.name}}</p>
+		                <p class="navbar-text">{{user.name}}</p>
                     <a id="logout" role="button" class="navbar-btn btn-sm btn btn-default" href="{{logout_url}}"> <i aria-hidden="true" class="fa fa-sign-out"></i> Logout</a>
                   {% else %}
                     <a id="login" role="button" class="btn-sm btn navbar-btn btn-default" href="{{login_url}}">Login</a>
@@ -76,6 +76,24 @@
                 </span>
               {% endblock %}
             </li>
+            {% if institution_logo_src %}
+            <li id="institution-logo">
+              {% if institution_logo_href %}
+              <a href="{{ institution_logo_href }}" target="_blank" rel="noopener noreferrer">
+              {% else %}
+              <span class="navbar-text">
+              {% endif %}
+                <img
+                  src="{{ institution_logo_src }}"
+                  alt="{{ institution_logo_alt or 'Logo' }}"
+                />
+              {% if institution_logo_href %}
+              </a>
+              {% else %}
+              </span>
+              {% endif %}
+            </li>
+            {% endif %}
           {% endblock %}
         </ul>
       </div>

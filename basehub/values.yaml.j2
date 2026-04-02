@@ -88,6 +88,9 @@ jupyterhub:
                     'subtitle': "A pre-configured environment for exploring AiiDAlab",
                     'include_qe': True,
                     'support_emails': ["aiidalab@materialscloud.org"],
+                    'institution_logo_src': "{{environ('INSTITUTION_LOGO_SRC') or 'None'}}",
+                    'institution_logo_href': "{{environ('INSTITUTION_LOGO_HREF') or 'None'}}",
+                    'institution_logo_alt': "{{environ('INSTITUTION_LOGO_ALT') or 'None'}}",
                 })
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
