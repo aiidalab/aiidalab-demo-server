@@ -1,7 +1,7 @@
 {% extends "templates/login.html" %}
 
 <!---->
-{% block title %}AiiDAlab Demo - Login{% endblock %}
+{% block title %}AiiDAlab {{ deployment }} - Login{% endblock %}
 
 <!---->
 {% block stylesheet %}
@@ -21,12 +21,13 @@
       </a>
     </div>
     <div id="title">
-      <h1>{{ title }}</h1>
+      <h1>Welcome to the AiiDAlab {{ DEPLOYMENT }} Server</h1>
       <span class="hint">{{ subtitle }}</span>
     </div>
     <div id="login-button">
       {% block login %} {{ super() }} {% endblock login %}
     </div>
+    {% if deployment == "Demo" %}
     <div id="warning-banner" class="alert alert-warning">
       <h2 id="warning-label">
         <i class="fa fa-exclamation-triangle"></i>
@@ -41,6 +42,7 @@
         expires.
       </strong>
     </div>
+    {% endif %}
   </header>
 
   <section id="platform-information">
@@ -213,6 +215,7 @@
             >AiiDAlab</a
           >
         </li>
+        {% if deployment == "Demo" %}
         <li>
           <a
             href="https://github.com/aiidalab/aiidalab-demo-server/issues/new"
@@ -220,7 +223,7 @@
             >AiiDAlab Demo Server</a
           >
         </li>
-        {% if include_qe %}
+        {% endif %} {% if include_qe %}
         <li>
           <a
             href="https://github.com/aiidalab/aiidalab-qe/issues/new"

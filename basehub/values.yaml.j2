@@ -1,9 +1,24 @@
 {%- set LOCAL = (environ('LOCAL') or 'false')|lower == 'true' -%}
 {%- set STAGING = (environ('K8S_NAMESPACE') or 'production') == 'staging' -%}
 {%- set INCLUDE_POLICIES = (environ('INCLUDE_POLICIES') or 'false')|lower == 'true' -%}
+{%- set INCLUDE_QE = (environ('INCLUDE_QE') or 'false')|lower == 'true' -%}
 {%- set CONTAINER_LIFETIME = (environ('CONTAINER_LIFETIME') or '') -%}
 {%- set PYTHON_VERSION = (environ('PYTHON_VERSION') or '3.9') -%}
-
+{%- set DEPLOYMENT = (environ('DEPLOYMENT') or 'Demo') -%}
+{%- set SUBTITLE = (environ('SUBTITLE') or 'A pre-configured environment for exploring AiiDAlab') -%}
+{%- set CPU_GUARANTEE = (environ('CPU_GUARANTEE') or ('0.25' if LOCAL else '1.5')) -%}
+{%- set CPU_LIMIT = (environ('CPU_LIMIT') or ('0.5' if LOCAL else '2')) -%}
+{%- set MEMORY_GUARANTEE = (environ('MEMORY_GUARANTEE') or ('512M' if LOCAL else '5G')) -%}
+{%- set MEMORY_LIMIT = (environ('MEMORY_LIMIT') or ('1G' if LOCAL else '5G')) -%}
+{%- set INSTITUTION_LOGO_SRC = (environ('INSTITUTION_LOGO_SRC') or '') -%}
+{%- set INSTITUTION_LOGO_HREF = (environ('INSTITUTION_LOGO_HREF') or '') -%}
+{%- set INSTITUTION_LOGO_ALT = (environ('INSTITUTION_LOGO_ALT') or '') -%}
+{%- set OAUTH_CLIENT_ID = (environ('OAUTH_CLIENT_ID') or '') -%}
+{%- set OAUTH_CLIENT_SECRET = (environ('OAUTH_CLIENT_SECRET') or '') -%}
+{%- set OAUTH_CALLBACK_URL = (environ('OAUTH_CALLBACK_URL') or '') -%}
+{%- set SUPPORT_EMAILS = (environ('SUPPORT_EMAILS') or '').split(',') or ["aiidalab@materialscloud.org"] -%}
+{%- set IMAGE = (environ('IMAGE') or 'aiidalab/qe') -%}
+{%- set IMAGE_TAG = (environ('IMAGE_TAG') or 'latest') -%}
 ---
 jupyterhub:
     proxy:
@@ -24,8 +39,8 @@ jupyterhub:
 
     singleuser:
         image:
-            name: aiidalab/qe
-            tag: latest
+            name: {{ IMAGE }}
+            tag: {{ IMAGE_TAG }}
             pullPolicy: {{ 'IfNotPresent' if LOCAL else 'Always' }}
         cmd:
             - start-singleuser.sh
@@ -33,11 +48,11 @@ jupyterhub:
             JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
             CONTAINER_LIFETIME: "{{ CONTAINER_LIFETIME }}"
         cpu:
-            guarantee: {{ environ('CPU_GUARANTEE') or ('0.25' if LOCAL else '1.5') }}
-            limit: {{ environ('CPU_LIMIT') or ('0.5' if LOCAL else '1.5') }}
+            guarantee: {{ CPU_GUARANTEE }}
+            limit: {{ CPU_LIMIT }}
         memory:
-            guarantee: {{ environ('MEMORY_GUARANTEE') or ('512M' if LOCAL else '5G') }}
-            limit: {{ environ('MEMORY_LIMIT') or ('1G' if LOCAL else '5G') }}
+            guarantee: {{ MEMORY_GUARANTEE }}
+            limit: {{ MEMORY_LIMIT }}
         storage:
             type: none
             extraVolumes:
@@ -84,13 +99,14 @@ jupyterhub:
                 c.JupyterHub.template_vars = getattr(c.JupyterHub, 'template_vars', {})
                 c.JupyterHub.template_vars.update({
                     'include_policies': {{ INCLUDE_POLICIES }},
-                    'title': "Welcome to the AiiDAlab Demo Server",
-                    'subtitle': "A pre-configured environment for exploring AiiDAlab",
-                    'include_qe': True,
-                    'support_emails': ["aiidalab@materialscloud.org"],
-                    'institution_logo_src': "{{environ('INSTITUTION_LOGO_SRC') or 'None'}}",
-                    'institution_logo_href': "{{environ('INSTITUTION_LOGO_HREF') or 'None'}}",
-                    'institution_logo_alt': "{{environ('INSTITUTION_LOGO_ALT') or 'None'}}",
+                    'deployment': "{{ DEPLOYMENT }}",
+                    'title': "Welcome to the AiiDAlab {{ DEPLOYMENT }} Server",
+                    'subtitle': "{{ SUBTITLE }}",
+                    'include_qe': {{ INCLUDE_QE }},
+                    'support_emails': {{ SUPPORT_EMAILS }},
+                    'institution_logo_src': "{{ INSTITUTION_LOGO_SRC }}",
+                    'institution_logo_href': "{{ INSTITUTION_LOGO_HREF }}",
+                    'institution_logo_alt': "{{ INSTITUTION_LOGO_ALT }}",
                 })
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
@@ -147,9 +163,9 @@ jupyterhub:
             JupyterHub:
                 authenticator_class: "github"
             GitHubOAuthenticator:
-                client_id: {{ environ('OAUTH_CLIENT_ID') }}
-                client_secret: {{ environ('OAUTH_CLIENT_SECRET') }}
-                oauth_callback_url: {{ environ('OAUTH_CALLBACK_URL') }}
+                client_id: {{ OAUTH_CLIENT_ID }}
+                client_secret: {{ OAUTH_CLIENT_SECRET }}
+                oauth_callback_url: {{ OAUTH_CALLBACK_URL }}
                 allow_all: true
                 admin_users:
                     - unkcpz

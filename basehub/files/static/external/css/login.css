@@ -119,6 +119,10 @@ header {
   font-size: 28px;
 }
 
+#platform-information .section-header {
+  justify-content: flex-start;
+}
+
 #aiidalab-icon {
   background: url("/hub/static/external/aiidalab-icon.svg");
   background-size: cover;
@@ -185,6 +189,12 @@ header {
 
 footer {
   text-align: center;
+}
+
+@media (min-width: 993px) {
+  .section-header {
+    justify-content: center;
+  }
 }
 
 @media (max-width: 992px) {
