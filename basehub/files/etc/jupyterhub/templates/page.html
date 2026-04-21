@@ -1,5 +1,12 @@
 {% extends "templates/page.html" %}
 
+<!---->
+{% block stylesheet %}
+<!---->
+{{ super() }}
+<link rel="stylesheet" href="/hub/static/external/page.css" type="text/css" />
+{% endblock %}
+
 {% block nav_bar %}
   <nav class="navbar navbar-default">
     <div class="container-fluid">
