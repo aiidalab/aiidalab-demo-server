@@ -54,6 +54,8 @@ jobs:
         K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
         PYTHON_VERSION: ${{ vars.PYTHON_VERSION }}
         CONTAINER_LIFETIME: ${{ vars.CONTAINER_LIFETIME }}
+        INCLUDE_QE: ${{ vars.INCLUDE_QE }}
+        SUPPORT_EMAILS: ${{ vars.SUPPORT_EMAILS }}
 
     - name: Connect to AKS
       run: az aks get-credentials --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}
