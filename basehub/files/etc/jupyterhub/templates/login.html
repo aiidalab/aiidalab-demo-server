@@ -14,7 +14,7 @@
 
 {% block main %}
 <div id="login-page">
-  <header id="banner">
+  <div id="banner">
     <div id="brand-logo">
       <a class="logo" href="https://aiidalab.net" target="_blank">
         <img src="/hub/static/external/aiidalab-wide-logo.png" alt="AiiDAlab" />
@@ -43,13 +43,17 @@
       </strong>
     </div>
     {% endif %}
-  </header>
+  </div>
 
   <section id="platform-information">
     <div class="info-box">
       <div class="section-header">
-        <i id="aiidalab-icon" class="fa"></i>
-        <h2>About AiiDAlab</h2>
+        <img
+          id="aiidalab-icon"
+          src="/hub/static/external/aiidalab-icon.svg"
+          alt="AiiDAlab"
+        />
+        <h2>AiiDAlab</h2>
       </div>
       <p>
         <a href="https://aiidalab.net" target="_blank">AiiDAlab</a> is an
@@ -59,8 +63,12 @@
     </div>
     <div class="info-box">
       <div class="section-header">
-        <i id="aiida-icon" class="fa"></i>
-        <h2>About AiiDA</h2>
+        <img
+          id="aiida-icon"
+          src="/hub/static/external/aiida-icon.svg"
+          alt="AiiDA"
+        />
+        <h2>AiiDA</h2>
       </div>
       <p>
         <a href="https://aiida.net" target="_blank">AiiDA</a>
@@ -71,38 +79,22 @@
     </div>
     <div class="info-box">
       <div class="section-header">
-        <i class="fa fa-info-circle"></i>
-        <h2>Resources</h2>
+        <img
+          id="mc-icon"
+          src="/hub/static/external/mc-icon.svg"
+          alt="Materials Cloud"
+        />
+        <h2>Materials Cloud</h2>
       </div>
-      <ul id="resource-list">
-        <li class="resource-item">
-          <i class="fa fa-video-camera"></i>
-          <a href="https://www.youtube.com/watch?v=Oqo5buk6Om8" target="_blank">
-            AiiDAlab introduction video
-          </a>
-        </li>
-        <li class="resource-item">
-          <i class="fa fa-book"></i>
-          <a href="https://aiidalab.readthedocs.io/en/latest/" target="_blank">
-            AiiDAlab documentation
-          </a>
-        </li>
-        <li class="resource-item">
-          <i class="fa fa-laptop"></i>
-          <a
-            href="https://aiidalab.readthedocs.io/en/latest/usage/access/local.html"
-            target="_blank"
-          >
-            Deploy AiiDAlab locally
-          </a>
-        </li>
-        <li class="resource-item">
-          <i class="fa fa-book"></i>
-          <a href="https://aiida.readthedocs.io/en/latest/" target="_blank">
-            AiiDA documentation
-          </a>
-        </li>
-      </ul>
+      <p>
+        The
+        <a href="https://www.materialscloud.org" target="_blank"
+          >Materials Cloud</a
+        >
+        is a platform for open and reproducible computational science, providing
+        tools for sharing, publishing, and exploring research data and
+        workflows.
+      </p>
     </div>
   </section>
 
@@ -186,8 +178,8 @@
             </a>
           </li>
           <li>
-            A. V. Yakutovich, K. Eimre, O. Schütt et al. <em>Comp. Mat. Sci.</em>
-            <b>188</b>, 110165 (2021).
+            A. V. Yakutovich, K. Eimre, O. Schütt et al.
+            <em>Comp. Mat. Sci.</em> <b>188</b>, 110165 (2021).
             <br />
             <a
               href="https://doi.org/10.1016/j.commatsci.2020.110165"
@@ -201,46 +193,92 @@
     </div>
   </section>
 
-  <section id="faq">
-    <div class="info-box">
-      <div class="section-header">
-        <h2>Any Questions?</h2>
+  <section id="more-info">
+    <div id="faq">
+      <div class="info-box">
+        <div class="section-header">
+          <h2>Any Questions?</h2>
+        </div>
+        <p>
+          If you have any questions or need assistance, please refer to the
+          <a href="/faq">FAQ</a> page. If you cannot find your question, please
+          <a
+            href="mailto:{{ support_emails | join(',') }}?subject=[HELP] AiiDAlab PSI Server"
+            >send us an email</a
+          >.
+        </p>
+        For technical issues, please open an issue at:
+        <ul>
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab/issues/new"
+              target="_blank"
+              >AiiDAlab</a
+            >
+          </li>
+          {% if deployment == "Demo" %}
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab-demo-server/issues/new"
+              target="_blank"
+              >AiiDAlab Demo Server</a
+            >
+          </li>
+          {% endif %} {% if include_qe %}
+          <li>
+            <a
+              href="https://github.com/aiidalab/aiidalab-qe/issues/new"
+              target="_blank"
+              >AiiDAlab QE app</a
+            >
+          </li>
+          {% endif %}
+        </ul>
       </div>
-      <p>
-        If you have any questions or need assistance, please refer to the
-        <a href="/faq">FAQ</a> page. If you cannot find your question, please
-        <a
-          href="mailto:{{ support_emails | join(',') }}?subject=[HELP] AiiDAlab PSI Server"
-          >send us an email</a
-        >.
-      </p>
-      For technical issues, please open an issue at:
-      <ul>
-        <li>
-          <a
-            href="https://github.com/aiidalab/aiidalab/issues/new"
-            target="_blank"
-            >AiiDAlab</a
-          >
-        </li>
-        {% if deployment == "Demo" %}
-        <li>
-          <a
-            href="https://github.com/aiidalab/aiidalab-demo-server/issues/new"
-            target="_blank"
-            >AiiDAlab Demo Server</a
-          >
-        </li>
-        {% endif %} {% if include_qe %}
-        <li>
-          <a
-            href="https://github.com/aiidalab/aiidalab-qe/issues/new"
-            target="_blank"
-            >AiiDAlab QE app</a
-          >
-        </li>
-        {% endif %}
-      </ul>
+    </div>
+
+    <div id="resources">
+      <div class="info-box">
+        <div class="section-header">
+          <i class="fa fa-info-circle"></i>
+          <h2>Resources</h2>
+        </div>
+        <ul id="resource-list">
+          <li class="resource-item">
+            <i class="fa fa-video-camera"></i>
+            <a
+              href="https://www.youtube.com/watch?v=Oqo5buk6Om8"
+              target="_blank"
+            >
+              AiiDAlab introduction video
+            </a>
+          </li>
+          <li class="resource-item">
+            <i class="fa fa-book"></i>
+            <a
+              href="https://aiidalab.readthedocs.io/en/latest/"
+              target="_blank"
+            >
+              AiiDAlab documentation
+            </a>
+          </li>
+          <li class="resource-item">
+            <i class="fa fa-laptop"></i>
+            <a
+              href="https://aiidalab.readthedocs.io/en/latest/usage/access/local.html"
+              target="_blank"
+            >
+              Deploy AiiDAlab locally
+            </a>
+          </li>
+          <li class="resource-item">
+            <i class="fa fa-book"></i>
+            <a href="https://aiida.readthedocs.io/en/latest/" target="_blank">
+              AiiDA documentation
+            </a>
+          </li>
+        </ul>
+      </div>
     </div>
   </section>
 
