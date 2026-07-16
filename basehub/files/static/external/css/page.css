@@ -5,11 +5,12 @@ body {
 
 body {
   position: relative;
-  background: white;
+  background: aliceblue;
 }
 
 .navbar {
   margin-bottom: 0;
+  background-color: white;
 }
 
 .navbar #institution-logo a {
