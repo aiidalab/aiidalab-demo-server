@@ -25,3 +25,11 @@ body {
 .navbar #institution-logo img {
   height: 28px;
 }
+
+#mc-link a {
+  padding: 6px;
+}
+
+#mc-link a img {
+  height: 28px;
+}

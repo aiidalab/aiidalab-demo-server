@@ -12,6 +12,8 @@
 {% block scripts %}
 <!---->
 {{ super() }}
+<!---->
+{% if is_mc_deployment %}
 <script src="https://cdn.jsdelivr.net/gh/materialscloud-org/mc-header@main/header.js" defer></script>
 <script>
   var breadcrumbsPath = [
@@ -26,6 +28,8 @@
     },
   ];
   </script>
+{% endif %}
+<!---->
 {% endblock scripts %}
 
 {% block nav_bar %}
@@ -113,13 +117,25 @@
               {% endif %}
                 <img
                   src="{{ institution_logo_src }}"
-                  alt="{{ institution_logo_alt or 'Logo' }}"
+                  alt="{{ institution_logo_alt or 'Institution' }}"
                 />
               {% if institution_logo_href %}
               </a>
               {% else %}
               </span>
               {% endif %}
+            </li>
+            {% endif %}
+            {% if not is_mc_deployment %}
+            <li id="mc-link">
+              <a
+                href="https://www.materialscloud.org/"
+                title="Materials Cloud"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src="/hub/static/external/mc-icon.svg" alt="Materials Cloud" />
+              </a>
             </li>
             {% endif %}
           {% endblock %}
