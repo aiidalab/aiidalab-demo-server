@@ -35,6 +35,9 @@ jupyterhub:
             {%- if not LOCAL %}
             hosts:
                 - {{ 'staging-demo' if STAGING else 'demo' }}.aiidalab.io
+                {%- if not STAGING %}
+                - aiidalab-demo.materialscloud.io
+                {%- endif %}
             letsencrypt:
                 contactEmail: aiidalab@materialscloud.org
             {%- endif %}
