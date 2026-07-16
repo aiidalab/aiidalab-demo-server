@@ -7,6 +7,27 @@
 <link rel="stylesheet" href="/hub/static/external/page.css" type="text/css" />
 {% endblock %}
 
+
+<!---->
+{% block scripts %}
+<!---->
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/gh/materialscloud-org/mc-header@main/header.js" defer></script>
+<script>
+  var breadcrumbsPath = [
+    { name: "Work", link: "https://www.materialscloud.org/work/" },
+    {
+      name: "AiiDAlab",
+      link: "https://www.materialscloud.org/work/aiidalab",
+    },
+    {
+      name: "AiiDAlab demo server",
+      link: null,
+    },
+  ];
+  </script>
+{% endblock scripts %}
+
 {% block nav_bar %}
   <nav class="navbar navbar-default">
     <div class="container-fluid">
