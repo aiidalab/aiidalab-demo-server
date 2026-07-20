@@ -5,6 +5,8 @@
 {%- set CONTAINER_LIFETIME = (environ('CONTAINER_LIFETIME') or '') -%}
 {%- set PYTHON_VERSION = (environ('PYTHON_VERSION') or '3.9') -%}
 {%- set DEPLOYMENT = (environ('DEPLOYMENT') or 'Demo') -%}
+{%- set IS_MC_DEPLOYMENT = (environ('IS_MC_DEPLOYMENT') or 'false')|lower == 'true' -%}
+{%- set TITLE = (environ('TITLE') or 'Welcome to the Materials Cloud AiiDAlab Demo Server') -%}
 {%- set SUBTITLE = (environ('SUBTITLE') or 'A pre-configured environment for exploring AiiDAlab') -%}
 {%- set CPU_GUARANTEE = (environ('CPU_GUARANTEE') or ('0.25' if LOCAL else '1.5')) -%}
 {%- set CPU_LIMIT = (environ('CPU_LIMIT') or ('0.5' if LOCAL else '2')) -%}
@@ -100,8 +102,9 @@ jupyterhub:
                 c.JupyterHub.template_vars.update({
                     'include_policies': {{ INCLUDE_POLICIES }},
                     'deployment': "{{ DEPLOYMENT }}",
-                    'title': "Welcome to the AiiDAlab {{ DEPLOYMENT }} Server",
+                    'title': "{{ TITLE }}",
                     'subtitle': "{{ SUBTITLE }}",
+                    'is_mc_deployment': {{ IS_MC_DEPLOYMENT }},
                     'include_qe': {{ INCLUDE_QE }},
                     'support_emails': {{ SUPPORT_EMAILS }},
                     'institution_logo_src': "{{ INSTITUTION_LOGO_SRC }}",
