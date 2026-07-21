@@ -13,6 +13,10 @@ body {
   background-color: white;
 }
 
+.navbar #login-widget {
+  margin-right: 16px;
+}
+
 .navbar #institution-logo a {
   padding: 6px;
 }
@@ -26,10 +30,10 @@ body {
   height: 28px;
 }
 
-#mc-link a {
+.navbar #mc-link a {
   padding: 6px;
 }
 
-#mc-link a img {
+.navbar #mc-link a img {
   height: 28px;
 }
