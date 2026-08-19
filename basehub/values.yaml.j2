@@ -21,6 +21,12 @@
 {%- set SUPPORT_EMAILS = (environ('SUPPORT_EMAILS') or '').split(',') or ["aiidalab@materialscloud.org"] -%}
 {%- set IMAGE = (environ('IMAGE') or 'aiidalab/qe') -%}
 {%- set IMAGE_TAG = (environ('IMAGE_TAG') or 'latest') -%}
+{#- Every DNS name pointing at this deployment. CANONICAL_HOST names the one
+    that serves the site; the rest are aliases redirected to it. It must be one
+    of HOSTS and must match the host in OAUTH_CALLBACK_URL-#}
+{%- set HOSTS = ['staging-demo.aiidalab.io'] if STAGING else ['aiidalab-demo.materialscloud.io', 'demo.aiidalab.io'] -%}
+{%- set CANONICAL_HOST = (environ('CANONICAL_HOST') or '') -%}
+{%- set ALIAS_HOSTS = HOSTS | reject('equalto', CANONICAL_HOST) | list if CANONICAL_HOST in HOSTS else [] -%}
 ---
 jupyterhub:
     proxy:
@@ -34,13 +40,30 @@ jupyterhub:
             enabled: {{ 'false' if LOCAL else 'true' }}
             {%- if not LOCAL %}
             hosts:
-                - {{ 'staging-demo' if STAGING else 'demo' }}.aiidalab.io
-                {%- if not STAGING %}
-                - aiidalab-demo.materialscloud.io
-                {%- endif %}
+                {%- for host in HOSTS %}
+                - {{ host }}
+                {%- endfor %}
             letsencrypt:
                 contactEmail: aiidalab@materialscloud.org
             {%- endif %}
+        {%- if not LOCAL and ALIAS_HOSTS %}
+        # Redirect the alias hosts to {{ CANONICAL_HOST }} at the TLS termination
+        # proxy, before any request reaches JupyterHub.
+        traefik:
+            extraDynamicConfig:
+                http:
+                    middlewares:
+                        canonical-host:
+                            redirectRegex:
+                                regex: '^https?://({{ ALIAS_HOSTS | map('replace', '.', '\\.') | join('|') }})/(.*)'
+                                replacement: 'https://{{ CANONICAL_HOST }}/${2}'
+                                # 302, not 301: browsers cache 301s ~forever,
+                                # which would outlive a change of canonical host.
+                                permanent: false
+                    routers:
+                        default:
+                            middlewares: [hsts, scheme, canonical-host]
+        {%- endif %}
 
     singleuser:
         image:
