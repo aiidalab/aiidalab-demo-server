@@ -40,8 +40,24 @@ jobs:
                   version: 'latest'
                   token: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Setup kubelogin
+              uses: azure/use-kubelogin@v1
+              with:
+                  kubelogin-version: 'latest'
+
             - name: Connect to AKS
-              run: az aks get-credentials --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}
+              # Once the cluster has Entra integration and Azure RBAC enabled, the
+              # kubeconfig authenticates with a token rather than a certificate, and
+              # kubectl needs the kubelogin plugin to obtain one. `-l azurecli` reuses
+              # the token azure/login already holds, so no extra credential is needed.
+              #
+              # Safe to run before that change: on a cluster still issuing certificates
+              # convert-kubeconfig finds nothing to convert and exits 0.
+              run: |
+                  az aks get-credentials \
+                      --resource-group ${{ vars.AZURE_RESOURCE_GROUP }} \
+                      --name ${{ vars.AZURE_KUBERNETES_CLUSTER }}
+                  kubelogin convert-kubeconfig -l azurecli
 
             - name: Deploy to AKS
               # Configuration lives in basehub/values-base.yaml plus
