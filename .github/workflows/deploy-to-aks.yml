@@ -43,7 +43,9 @@ jobs:
             - name: Setup kubelogin
               uses: azure/use-kubelogin@v1
               with:
-                  kubelogin-version: 'latest'
+                  kubelogin-version: 'v0.2.19'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Connect to AKS
               # Once the cluster has Entra integration and Azure RBAC enabled, the
