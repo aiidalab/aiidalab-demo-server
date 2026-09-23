@@ -4,8 +4,8 @@ name: Deploy to AKS
 on:
     push:
         branches:
-            - production
-            - staging
+            - main # -> staging
+            - production # -> production
     workflow_dispatch:
 
 # OIDC token being allowed be generated
@@ -16,7 +16,7 @@ permissions:
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
-        # production if it is the production branch, staging otherwise
+        # main deploys staging; the production branch deploys production
         environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
         steps:
             - name: Checkout
