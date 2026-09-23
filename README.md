@@ -363,7 +363,7 @@ kubectl get svc proxy-public -n <namespace>
 |---|---|---|
 | push to `main` | **staging** | review on the pull request |
 | a published GitHub **release** | **production** | tag ruleset + required reviewers on the environment |
-| `workflow_dispatch` | either | choose the environment, and optionally a ref |
+| `workflow_dispatch` | **staging** only | re-runs a staging deploy without an empty commit |
 
 All three run `.github/workflows/deploy-to-aks.yml`, which authenticates to Azure with
 OpenID Connect — no stored Azure credential — and then runs the same `./deploy.sh` you
@@ -407,17 +407,24 @@ It then checks out **the tag**, not a branch.
 
 ### Rolling back
 
-Deploy an earlier tag — **Actions → Deploy to AKS → Run workflow**, set the environment to
-`production` and `ref` to the tag you want.
+**Cut a new release from the last good commit.** Revert the offending change on `main`, or
+tag the previous good commit, and publish a release for it — `v2026.06.02` after a bad
+`v2026.06.01`.
 
-For a faster in-cluster escape hatch that skips CI entirely:
+That is deliberately the only route. Nothing can deploy production except a published
+release, so "what is running" and "the latest release" never drift apart. A mechanism for
+deploying an older tag directly would break that: the newest release would no longer describe
+production, and nothing would say so.
+
+For a faster escape hatch that skips CI entirely:
 
 ```bash
 helm -n production rollback production
 ```
 
-That reverts to the previous Helm revision. It does not change what the repo says is
-deployed, so follow it with a real release once the cause is understood.
+That reverts to the previous Helm revision within seconds. It *does* break the invariant
+above — the repo now disagrees with the cluster — so treat it as first aid and follow it with
+a real release once the cause is understood.
 
 ### Set up automatic HTTPS with Let's Encrypt
 

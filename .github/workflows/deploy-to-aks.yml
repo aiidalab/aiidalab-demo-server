@@ -1,9 +1,11 @@
 ---
 name: Deploy to AKS
 
-# main            -> staging
+# main                -> staging
 # a published release -> production
-# workflow_dispatch   -> either, for rollback or a manual re-run
+#
+# Nothing else deploys. Rollback is cutting a new release from the last good
+# commit, which keeps "what is deployed" and "the latest release" the same thing.
 
 on:
     push:
@@ -11,17 +13,7 @@ on:
             - main
     release:
         types: [published]
-    workflow_dispatch:
-        inputs:
-            environment:
-                description: Environment to deploy
-                type: choice
-                options: [staging, production]
-                default: staging
-            ref:
-                description: Tag or SHA to deploy (default = this branch)
-                type: string
-                required: false
+    workflow_dispatch: # re-run a staging deploy without an empty commit
 
 # OIDC token being allowed be generated
 permissions:
@@ -29,7 +21,7 @@ permissions:
     contents: read
 
 concurrency:
-    group: deploy-${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
+    group: deploy-${{ github.event_name == 'release' && 'production' || 'staging' }}
     cancel-in-progress: false
 
 jobs:
@@ -37,13 +29,13 @@ jobs:
         runs-on: ubuntu-latest
         # A pre-release must never reach production.
         if: github.event_name != 'release' || github.event.release.prerelease == false
-        environment: ${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
+        environment: ${{ github.event_name == 'release' && 'production' || 'staging' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
               with:
                   # A release deploys its tag, not the branch the workflow file lives on.
-                  ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.ref }}
+                  ref: ${{ github.event_name == 'release' && github.event.release.tag_name || '' }}
                   # Full history: the ancestry check below needs it.
                   fetch-depth: 0
 
@@ -116,7 +108,7 @@ jobs:
               # passed in here.
               run: ./deploy.sh
               env:
-                  ENVIRONMENT: ${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
+                  ENVIRONMENT: ${{ github.event_name == 'release' && 'production' || 'staging' }}
                   OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
                   OAUTH_CALLBACK_URL: ${{ vars.OAUTH_CALLBACK_URL }}
                   OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
