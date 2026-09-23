@@ -43,9 +43,14 @@ args=(
 # Secrets are passed on the command line rather than rendered into a file, so
 # they never exist on disk. Each is optional: environments using dummy auth have
 # no OAuth credentials, and vice versa.
+# Note the explicit `if` rather than `[[ ... ]] && ...`: under `set -e` a function
+# whose last command is a failed test returns non-zero and kills the script, which
+# is exactly what an unset optional secret would do.
 secret() {
 	local value="${2:-}"
-	[[ -n "${value}" ]] && args+=(--set-string "$1=${value}")
+	if [[ -n "${value}" ]]; then
+		args+=(--set-string "$1=${value}")
+	fi
 }
 secret jupyterhub.hub.config.GitHubOAuthenticator.client_id "${OAUTH_CLIENT_ID:-}"
 secret jupyterhub.hub.config.GitHubOAuthenticator.client_secret "${OAUTH_CLIENT_SECRET:-}"
