@@ -42,3 +42,13 @@ jupyterhub:
     scheduling:
         userScheduler:
             enabled: false
+
+    # Pre-pulling the ~5GB singleuser image is valuable in production, where it
+    # spares the first visitor a long wait. Here it only makes `helm upgrade`
+    # block on a multi-gigabyte pull before the hub is even usable — and the
+    # awaiter is a Helm hook, so it blocks the release, not just the pods.
+    prePuller:
+        hook:
+            enabled: false
+        continuous:
+            enabled: false
