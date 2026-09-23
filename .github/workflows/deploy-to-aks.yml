@@ -1,26 +1,73 @@
 ---
 name: Deploy to AKS
 
+# main            -> staging
+# a published release -> production
+# workflow_dispatch   -> either, for rollback or a manual re-run
+
 on:
     push:
         branches:
-            - main # -> staging
-            - production # -> production
+            - main
+    release:
+        types: [published]
     workflow_dispatch:
+        inputs:
+            environment:
+                description: Environment to deploy
+                type: choice
+                options: [staging, production]
+                default: staging
+            ref:
+                description: Tag or SHA to deploy (default = this branch)
+                type: string
+                required: false
 
 # OIDC token being allowed be generated
 permissions:
     id-token: write
     contents: read
 
+concurrency:
+    group: deploy-${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
+    cancel-in-progress: false
+
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
-        # main deploys staging; the production branch deploys production
-        environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+        # A pre-release must never reach production.
+        if: github.event_name != 'release' || github.event.release.prerelease == false
+        environment: ${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                  # A release deploys its tag, not the branch the workflow file lives on.
+                  ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.ref }}
+                  # Full history: the ancestry check below needs it.
+                  fetch-depth: 0
+
+            - name: Validate the release tag
+              if: github.event_name == 'release'
+              env:
+                  TAG: ${{ github.event.release.tag_name }}
+              run: |
+                  if [[ ! "$TAG" =~ ^v20[0-9]{2}\.(0[1-9]|1[0-2])\.(0[1-9]|[12][0-9]|3[01])(\.[0-9]+)?$ ]]; then
+                      echo "::error::'$TAG' is not vYYYY.MM.DD[.n], e.g. v2026.06.01 or v2026.06.01.1"
+                      exit 1
+                  fi
+                  echo "tag $TAG"
+
+            - name: Released commit must be on main
+              # A tag can be placed on any commit, including one never reviewed.
+              if: github.event_name == 'release'
+              run: |
+                  git fetch --no-tags origin main
+                  if ! git merge-base --is-ancestor HEAD origin/main; then
+                      echo "::error::$(git rev-parse HEAD) is not an ancestor of origin/main"
+                      exit 1
+                  fi
+                  echo "$(git rev-parse --short HEAD) is on main"
 
             - name: Azure Login
               uses: azure/login@v1
@@ -41,6 +88,8 @@ jobs:
                   token: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Setup kubelogin
+              # Pinned rather than 'latest': resolving 'latest' calls the GitHub
+              # releases API, which needs a token and fails without one.
               uses: azure/use-kubelogin@v1
               with:
                   kubelogin-version: 'v0.2.19'
@@ -67,10 +116,10 @@ jobs:
               # passed in here.
               run: ./deploy.sh
               env:
-                  ENVIRONMENT: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+                  ENVIRONMENT: ${{ github.event_name == 'release' && 'production' || inputs.environment || 'staging' }}
                   OAUTH_CLIENT_ID: ${{ vars.OAUTH_CLIENT_ID }}
-                  OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
                   OAUTH_CALLBACK_URL: ${{ vars.OAUTH_CALLBACK_URL }}
+                  OAUTH_CLIENT_SECRET: ${{ secrets.OAUTH_CLIENT_SECRET }}
 
             - name: Logout of Azure
               run: az logout
