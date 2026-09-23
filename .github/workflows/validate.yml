@@ -1,0 +1,104 @@
+---
+name: Validate
+
+# Catches broken values, invalid chart config and a hub that will not start,
+# before any of it reaches a real cluster.
+#
+# Deliberately uses NO secrets and requests no privileged permissions, so it
+# also runs on pull requests from forks.
+
+on:
+    pull_request:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: validate-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    CHART: basehub
+
+jobs:
+    values:
+        name: Template every environment
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: azure/setup-helm@v4
+              with:
+                  version: latest
+
+            - name: Fetch chart dependencies
+              run: helm dependency build "$CHART"
+
+            - name: Lint and template each environment
+              run: |
+                  for f in "$CHART"/values-*.yaml; do
+                      env_name="${f##*/values-}"; env_name="${env_name%.yaml}"
+                      [ "$env_name" = base ] && continue
+                      echo "::group::$env_name"
+                      helm lint "$CHART" -f "$CHART/values-base.yaml" -f "$f"
+                      helm template "$CHART" -f "$CHART/values-base.yaml" -f "$f" > "/tmp/$env_name.yaml"
+                      echo "$env_name: $(grep -c '^kind:' "/tmp/$env_name.yaml") resources"
+                      echo "::endgroup::"
+                  done
+
+            - name: No credentials in committed values
+              # Secrets are injected by deploy.sh at deploy time, so a non-empty
+              # credential here would mean one had been committed. values-local.yaml
+              # is exempt: its dummy password is deliberately public.
+              run: |
+                  if grep -nE '(client_secret|password|token):[[:space:]]*[^[:space:]'"'"'"]' \
+                      "$CHART"/values-*.yaml | grep -v 'values-local.yaml'; then
+                      echo "::error::a credential appears to be committed above"
+                      exit 1
+                  fi
+                  echo "none found"
+
+    kind:
+        name: Install into a throwaway cluster
+        runs-on: ubuntu-latest
+        needs: values
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: azure/setup-helm@v4
+              with:
+                  version: latest
+
+            # kind = Kubernetes in Docker: a real cluster, in containers, thrown away
+            # with the runner. Proves Kubernetes accepts the manifests and that the hub
+            # actually starts, which templating alone cannot show.
+            - uses: helm/kind-action@v1
+              with:
+                  config: kind-config.yaml
+                  cluster_name: validate
+
+            - name: Install the chart
+              # Runs the real deploy.sh, so the script itself is exercised — including
+              # the case where every optional secret is unset.
+              env:
+                  ENVIRONMENT: local
+                  NAMESPACE: local
+                  RELEASE: aiidalab-demo-server
+              run: ./deploy.sh
+
+            - name: Wait for hub and proxy
+              run: |
+                  kubectl -n local rollout status deploy/hub --timeout=600s
+                  kubectl -n local rollout status deploy/proxy --timeout=600s
+
+            - name: Diagnostics
+              if: failure()
+              run: |
+                  kubectl -n local get pods -o wide || true
+                  kubectl -n local describe pods || true
+                  kubectl -n local get events --sort-by=.lastTimestamp | tail -40 || true
+                  kubectl -n local logs deploy/hub --tail=100 || true
