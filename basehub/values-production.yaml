@@ -58,6 +58,3 @@ jupyterhub:
         config:
             JupyterHub:
                 authenticator_class: github
-                template_vars:
-                    is_mc_deployment: true
-                    include_qe: true

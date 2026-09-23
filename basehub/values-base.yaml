@@ -92,8 +92,8 @@ jupyterhub:
                     subtitle: A pre-configured environment for exploring AiiDAlab
                     deployment: Demo
                     include_policies: false
-                    include_qe: false
-                    is_mc_deployment: false
+                    include_qe: true
+                    is_mc_deployment: true
                     support_emails:
                         - aiidalab@materialscloud.org
                     institution_logo_src: ''

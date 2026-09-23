@@ -35,8 +35,6 @@ jupyterhub:
                 authenticator_class: dummy
                 template_vars:
                     deployment: Preview
-                    is_mc_deployment: true
-                    include_qe: true
             # DummyAuthenticator.password is injected at deploy time. These URLs are
             # publicly reachable and a login costs a pod, so it must not be "demo".
 

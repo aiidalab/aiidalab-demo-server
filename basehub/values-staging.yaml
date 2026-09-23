@@ -33,5 +33,3 @@ jupyterhub:
                 authenticator_class: github
                 template_vars:
                     deployment: Staging
-                    is_mc_deployment: true
-                    include_qe: true
