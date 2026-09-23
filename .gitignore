@@ -1,3 +1,6 @@
+# macOS Finder metadata
+.DS_Store
+
 ssh-key-*
 secrets*
 k8s-deploy-venv/*
