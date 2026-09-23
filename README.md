@@ -329,8 +329,13 @@ written to a file.
 
 ## Deploy
 
+Normally you do not run this by hand. Pushing to `main` deploys staging, and publishing a
+release deploys production — see
+[Releasing to production](#releasing-to-production). The script below is what CI runs, and
+what you use for a local cluster or a one-off.
+
 ```bash
-ENVIRONMENT=production ./deploy.sh
+ENVIRONMENT=staging ./deploy.sh
 ```
 
 `ENVIRONMENT` picks the values file, and the namespace and Helm release name default
@@ -352,18 +357,74 @@ kubectl get svc proxy-public -n <namespace>
 
 ## For maintainers and administrators
 
-### Automatic CI/CD deployment
+### How deployments happen
 
-We simply run helm upgrade in CI workflow to deploy the JupyterHub.
-The CI workflow requires login to the Azure account, and we use OpenID Connect to authenticate the user.
+| Trigger | Deploys | Gate |
+|---|---|---|
+| push to `main` | **staging** | review on the pull request |
+| a published GitHub **release** | **production** | tag ruleset + required reviewers on the environment |
+| `workflow_dispatch` | **staging** only | re-runs a staging deploy without an empty commit |
 
-Go to the entra.microsoft.com and navigate to the `aiidalab-sp` -> `Certificates & secrets` -> `Fedrated credentials`. Set credentials for the GitHub production and staging environments.
+All three run `.github/workflows/deploy-to-aks.yml`, which authenticates to Azure with
+OpenID Connect — no stored Azure credential — and then runs the same `./deploy.sh` you
+would run by hand.
 
-On the GitHub repository, the secrets are set for `production` and `staging` environments respectively.
+Each environment has its own app registration, so a staging deploy cannot use production's
+identity. The federated credential's subject names the environment exactly
+(`repo:aiidalab/aiidalab-demo-server:environment:staging`), so a workflow that does not
+declare that environment cannot obtain a token at all.
 
-The `aiidalab-sp` was only assigned the Contributor role for the VNet, and it is not yet assigned to the resource group. This is to avoid the service principal to have too much access to the resources.
+### Releasing to production
 
-To get the kube credentials, the `aiidalab-sp` should be assigned to cluster `demo-server` as well.
+Production deploys from **published releases**, not from a branch.
+
+1. Check staging. It is whatever is on `main`, which is what you are about to release.
+2. On GitHub, **Releases → Draft a new release**.
+3. Create a tag of the form `vYYYY.MM.DD`, for example `v2026.06.01`, targeting `main`.
+   For a second release on the same day, append a counter: `v2026.06.01.1`, then
+   `v2026.06.01.2`.
+4. **Generate release notes** — this becomes the record of what changed in production.
+5. Publish. That triggers the deploy; approve it if required reviewers are configured.
+
+Use a dot before the counter, never a hyphen: in SemVer a hyphen means *pre-release*, and
+would sort the second release of the day *before* the first.
+
+Marking a release as a **pre-release** deliberately does nothing — it will not deploy. Useful
+for drafting.
+
+Before deploying, the workflow checks that:
+
+- the tag matches `vYYYY.MM.DD[.n]`, with real month and day ranges;
+- the tagged commit is an **ancestor of `main`**, so a tag on an unreviewed commit cannot
+  deploy;
+- the release is not a pre-release.
+
+It then checks out **the tag**, not a branch.
+
+> The `production` environment's *deployment branch policy* must permit tags. A
+> branches-only policy rejects a release deploy before any Azure step runs, with an error
+> that looks unrelated to tags.
+
+### Rolling back
+
+**Cut a new release from the last good commit.** Revert the offending change on `main`, or
+tag the previous good commit, and publish a release for it — `v2026.06.02` after a bad
+`v2026.06.01`.
+
+That is deliberately the only route. Nothing can deploy production except a published
+release, so "what is running" and "the latest release" never drift apart. A mechanism for
+deploying an older tag directly would break that: the newest release would no longer describe
+production, and nothing would say so.
+
+For a faster escape hatch that skips CI entirely:
+
+```bash
+helm -n production rollback production
+```
+
+That reverts to the previous Helm revision within seconds. It *does* break the invariant
+above — the repo now disagrees with the cluster — so treat it as first aid and follow it with
+a real release once the cause is understood.
 
 ### Set up automatic HTTPS with Let's Encrypt
 
