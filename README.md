@@ -383,102 +383,49 @@ proxy:
 
 ## Local deployment for development
 
-> **Note.** The `make` targets below still render `basehub/values.yaml` from the deprecated
-> `basehub/values.yaml.j2`. Every *deployed* environment now uses the committed values files
-> described under [Configuration](#configuration) instead. Editing the Jinja template affects
-> `make up` and nothing else. The two will be unified by pointing the Makefile at
-> `-f values-base.yaml -f values-local.yaml`; until then, to deploy the same configuration CI
-> uses, run:
->
-> ```bash
-> ENVIRONMENT=local NAMESPACE=local ./deploy.sh
-> ```
-
-
-For quick iteration on the demo server UI (templates, static assets, chart wiring), you can deploy the Helm chart to a local Kubernetes cluster (recommended: [kind](https://kind.sigs.k8s.io/)).
+The same `deploy.sh` and the same values files as staging and production, pointed at a
+throwaway [kind](https://kind.sigs.k8s.io/) cluster. Four commands, no extra tooling.
 
 ### Prerequisites
 
-- `kind`
-- `kubectl`
-- `helm`
-- `make`
-- `jinja2` (from `jinja2-cli`, installed via `requirements.txt`)
+- Docker, running
+- `kind`, `kubectl`, `helm`
 
-See [here](https://kind.sigs.k8s.io/docs/user/quick-start/#installing-from-release-binaries) for `kind` installation instructions.
-
-### Configure and generate values
-
-This repo uses a Makefile-based workflow for local deployment.
-
-1. Create a python environment and install the templating dependencies, for example:
+### Run it
 
 ```bash
-python3 -m venv k8s-deploy-venv
-source k8s-deploy-venv/bin/activate
-python3 -m pip install -r requirements.txt
+kind create cluster --name aiidalab-demo-server-local --config kind-config.yaml
+ENVIRONMENT=local NAMESPACE=local ./deploy.sh
+kubectl -n local rollout status deploy/hub deploy/proxy
 ```
 
-2. Create a `.env` file (or export variables in your shell). For GitHub OAuth (see **Note** below) you typically need:
+Then open **http://localhost:8000** and log in with any username and the password `demo`.
 
-   *Only the `make` path needs these.* `ENVIRONMENT=local ./deploy.sh` uses
-   `values-local.yaml`, which logs in with any username and the password `demo` — no OAuth
-   app required.
+No port-forwarding is needed: `kind-config.yaml` maps container port 32080 to host port
+8000, and `values-local.yaml` puts the proxy on that NodePort.
 
-- `OAUTH_CLIENT_ID`
-- `OAUTH_CLIENT_SECRET`
-- `OAUTH_CALLBACK_URL` (for local: `http://localhost:8000/hub/oauth_callback`)
+No secrets are needed either. `values-local.yaml` uses `DummyAuthenticator`, so there is no
+GitHub OAuth app to register. The `~2GB` singleuser image is pulled lazily, so the hub comes
+up in a couple of minutes but the *first* login is slow.
 
-!!! note
-
-    For local development, you can [create a GitHub OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app) in your own GitHub account.
-    Make sure to set the following:
-    - **Homepage URL**: `http://localhost:8000`.
-    - **Authorization callback URL**: `http://localhost:8000/hub/oauth_callback`.
-
-3. Render the values.yaml file used by Helm:
-
-```bash
-make generate-values
-```
-
-By default this writes `basehub/values.yaml` from `basehub/values.yaml.j2` with `LOCAL=True`.
-
-### Run
-
-```bash
-make up
-```
-
-Then open `http://localhost:8000`.
-
-If `http://localhost:8000` is not reachable (common on kind without port mappings), run:
-
-```bash
-make port-forward
-```
+`deploy.sh` refuses to deploy `ENVIRONMENT=local` unless the current kubectl context is a
+kind cluster. This is deliberate: a context left pointing at a real cluster once put a
+`local` release into production. Override with `ALLOW_ANY_CONTEXT=true` if you mean it.
 
 ### Applying changes while developing
 
-Edits to Helm values, templates, and the bundled static assets are not hot-reloaded automatically.
-Re-apply changes with:
+Anything under `basehub/files/` is mounted from a ConfigMap, and ConfigMaps do not
+hot-reload. After editing a template, a stylesheet or a script:
 
 ```bash
-make refresh
+ENVIRONMENT=local NAMESPACE=local ./deploy.sh
+kubectl -n local rollout restart deploy/hub deploy/proxy
 ```
+
+Changing a values file only needs the first command.
 
 ### Tear down
 
 ```bash
-make down
+kind delete cluster --name aiidalab-demo-server-local
 ```
-
-### Useful overrides
-
-You can override defaults at invocation time, e.g.:
-
-```bash
-make NAMESPACE=local RELEASE_NAME=aiidalab-demo-server up
-```
-
-Run `make help` to see available targets and defaults.
