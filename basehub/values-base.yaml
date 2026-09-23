@@ -1,0 +1,147 @@
+---
+# Shared by every environment. A deployment is always this file plus exactly one
+# environment file:
+#
+#     helm upgrade -f basehub/values-base.yaml -f basehub/values-<environment>.yaml
+#
+# Secrets are never stored here; they are injected at deploy time (see deploy.sh).
+# Anything that differs between environments belongs in the environment file, not
+# here. See README.md, "Configuration".
+
+jupyterhub:
+    singleuser:
+        image:
+            # Deliberately a floating tag: the demo exists to show the latest
+            # released AiiDAlab. Nothing is persisted (storage.type: none, 12h cull)
+            # so no session is long enough to be disrupted by an image change.
+            name: aiidalab/qe
+            tag: latest
+        cmd:
+            - start-singleuser.sh
+        extraEnv:
+            JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
+        storage:
+            type: none
+            extraVolumes:
+                - name: hub-templates
+                  configMap:
+                      name: hub-templates
+                - name: hub-external
+                  configMap:
+                      name: hub-external
+                - name: etc-jupyter
+                  configMap:
+                      name: user-etc-jupyter
+                - name: notebook-static-custom
+                  configMap:
+                      name: notebook-static-custom
+                - name: aiidalab-uptime
+                  configMap:
+                      name: aiidalab-uptime
+            extraVolumeMounts:
+                - mountPath: /etc/jupyterhub/templates
+                  name: hub-templates
+                - mountPath: /usr/local/share/jupyterhub/static/external
+                  name: hub-external
+                - mountPath: /etc/jupyter
+                  name: etc-jupyter
+                  # The Python version here must match the image's conda Python, or
+                  # custom.js and custom.css silently do not load. Helm replaces whole
+                  # lists, so an environment needing a different path must restate this
+                  # entire block.
+                - mountPath: /opt/conda/lib/python3.9/site-packages/notebook/static/custom
+                  name: notebook-static-custom
+                - mountPath: /opt/conda/etc/jupyter/jupyter_notebook_config.d
+                  name: aiidalab-uptime
+
+    hub:
+        readinessProbe:
+            enabled: true
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 5
+            timeoutSeconds: 5
+        db:
+            pvc:
+                storage: 1Gi
+        extraVolumes:
+            - name: hub-templates
+              configMap:
+                  name: hub-templates
+            - name: hub-external
+              configMap:
+                  name: hub-external
+        extraVolumeMounts:
+            - mountPath: /etc/jupyterhub/templates
+              name: hub-templates
+            - mountPath: /usr/local/share/jupyterhub/static/external
+              name: hub-external
+        config:
+            Authenticator:
+                allow_all: true
+                admin_users:
+                    - unkcpz
+                    - yakutovicha
+                    - mikibonacci
+                    - giovannipizzi
+                    - edan-bainglass
+            JupyterHub:
+                # Values read by the custom page templates. Overridden per environment.
+                template_vars:
+                    title: Welcome to the Materials Cloud AiiDAlab Demo Server
+                    subtitle: A pre-configured environment for exploring AiiDAlab
+                    deployment: Demo
+                    include_policies: false
+                    include_qe: false
+                    is_mc_deployment: false
+                    support_emails:
+                        - aiidalab@materialscloud.org
+                    institution_logo_src: ''
+                    institution_logo_href: ''
+                    institution_logo_alt: ''
+        extraConfig:
+            00-logo: |
+                c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
+            02-spawner: |
+                c.KubeSpawner.http_timeout = 300
+            03-templates: |
+                c.JupyterHub.template_paths.append('/etc/jupyterhub/templates')
+            04-navigation-handler: |
+                from jupyterhub.handlers import BaseHandler
+
+                include_policies = c.JupyterHub.template_vars.get('include_policies', False)
+
+                class AboutHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("about.html", sync=True))
+
+                class FAQHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("faq.html", sync=True))
+
+                class TermsOfUseHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("terms-of-use.html", sync=True))
+
+                class PrivacyPolicyHandler(BaseHandler):
+                    def get(self):
+                        self.write(self.render_template("privacy-policy.html", sync=True))
+
+                routes = [(r"about", AboutHandler)]
+                if include_policies:
+                    routes.extend(
+                        [
+                            (r"terms-of-use", TermsOfUseHandler),
+                            (r"privacy-policy", PrivacyPolicyHandler),
+                        ]
+                    )
+                routes.append((r"faq", FAQHandler))
+                c.JupyterHub.extra_handlers.extend(routes)
+
+    cull:
+        enabled: true
+        users: true
+        adminUsers: true
+        timeout: 43200 # 12 hours
+        every: 300 # 5 minutes
+        maxAge: 43200 # 12 hours

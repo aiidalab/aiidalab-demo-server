@@ -1,0 +1,36 @@
+---
+# Local development on kind. Layers on values-base.yaml.
+# No secrets are needed: login with any username and the password below.
+
+jupyterhub:
+    proxy:
+        service:
+            type: NodePort
+            nodePorts:
+                http: 32080
+        https:
+            enabled: false
+
+    singleuser:
+        image:
+            pullPolicy: IfNotPresent
+        extraEnv:
+            CONTAINER_LIFETIME: ''
+        cpu:
+            guarantee: 0.25
+            limit: 0.5
+        memory:
+            guarantee: 512M
+            limit: 1G
+
+    hub:
+        db:
+            pvc:
+                storageClassName: standard
+        config:
+            JupyterHub:
+                authenticator_class: dummy
+                template_vars:
+                    deployment: Local
+            DummyAuthenticator:
+                password: demo

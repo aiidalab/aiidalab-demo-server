@@ -1,0 +1,46 @@
+---
+# Per-pull-request preview environments. Layers on values-base.yaml.
+#
+# The namespace and hostname are per-PR and are injected at deploy time, not
+# stored here. TLS is a single wildcard certificate for *.demo.aiidalab.xyz,
+# managed by cert-manager, so the chart's own Let's Encrypt support is off.
+#
+# Previews deliberately do NOT use GitHub OAuth: an OAuth app has one callback
+# URL and no wildcards, so a per-PR hostname cannot complete a login. The OAuth
+# path is exercised on staging instead.
+
+jupyterhub:
+    proxy:
+        https:
+            enabled: false
+
+    singleuser:
+        image:
+            pullPolicy: Always
+        extraEnv:
+            CONTAINER_LIFETIME: ''
+        cpu:
+            guarantee: 0.25
+            limit: 1
+        memory:
+            guarantee: 1G
+            limit: 2G
+
+    hub:
+        db:
+            pvc:
+                storageClassName: default
+        config:
+            JupyterHub:
+                authenticator_class: dummy
+                template_vars:
+                    deployment: Preview
+                    is_mc_deployment: true
+                    include_qe: true
+            # DummyAuthenticator.password is injected at deploy time. These URLs are
+            # publicly reachable and a login costs a pod, so it must not be "demo".
+
+    # Two extra pods per release, for a preview nobody schedules against.
+    scheduling:
+        userScheduler:
+            enabled: false
