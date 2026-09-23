@@ -1,0 +1,35 @@
+---
+# Staging: the production mirror, in its own namespace on the production cluster.
+# The only place the real OAuth, canonical-host and TLS paths are exercised.
+# Layers on values-base.yaml. OAuth credentials are injected at deploy time.
+
+jupyterhub:
+    proxy:
+        https:
+            enabled: true
+            hosts:
+                - staging-demo.aiidalab.io
+            letsencrypt:
+                contactEmail: aiidalab@materialscloud.org
+
+    singleuser:
+        image:
+            pullPolicy: Always
+        extraEnv:
+            CONTAINER_LIFETIME: '12:00:00'
+        cpu:
+            guarantee: 1.5
+            limit: 2
+        memory:
+            guarantee: 5G
+            limit: 5G
+
+    hub:
+        db:
+            pvc:
+                storageClassName: default
+        config:
+            JupyterHub:
+                authenticator_class: github
+                template_vars:
+                    deployment: Staging

@@ -189,48 +189,162 @@ curl https://raw.githubusercontent.com/helm/helm/HEAD/scripts/get-helm-3 | bash
 Policy document templates are available at https://github.com/aiidalab/aiidalab-deployment-files.
 Follow the instructions there to generate the policy documents for your deployment.
 You can then deploy the generated documents in `basehub/files/etc/jupyterhub/templates`.
-Once deployed, set the `INCLUDE_POLICIES` environment variable to `true`. The deployment procedure will then introduce links to the documents in the JupyterHub UI.
+Once deployed, set `include_policies: true` under `jupyterhub.hub.config.JupyterHub.template_vars`
+in that environment's values file. This gates both the `/terms-of-use` and `/privacy-policy`
+routes and the links to them in the JupyterHub UI.
 
-## Install JupyterHub
+The generated documents are gitignored, so they must be present in the working tree at deploy
+time — they are not carried by the repo.
 
-Running the helm command will install JupyterHub with the configuration in `values.yaml`.
-Before running the command, make sure the `values.yaml` file is updated with the correct configuration set and read from jinja2 template.
+## Configuration
 
-```bash
-## Create a python environment for the deployment
-python3 -m venv k8s-deploy-venv
-source k8s-deploy-venv/bin/activate
+Everything that describes *what* a deployment looks like is committed to this repo.
+Only secrets and the Azure coordinates come from GitHub settings.
 
-## Install the requirements
-python3 -m pip install -r requirements.txt
+**Set these up before deploying** — the order is: create the cluster, set the secrets
+and variables for the environment, then deploy.
+
+### Values files
+
+A deployment is always the base file plus exactly one environment file:
 
 ```
-
-The `values.yaml` file requires the following environment variables to be set:
-
-- `K8S_NAMESPACE`: The namespace where the JupyterHub will be installed, e.g. `production`, `staging`.
-- `OAUTH_CLIENT_ID`: The client ID of the GitHub app.
-- `OAUTH_CLIENT_SECRET`: The client secret of the GitHub app.
-- `OAUTH_CALLBACK_URL`: The callback URL of the GitHub app.
-
-We use GitHub oauthenticator to allow users to login with their GitHub account.
-The authentication is created using the `aiidalab` org with app name `aiidalab-demo-production` and `aiidalab-demo-staging` for the production and staging environments respectively.
-
-Render the `values.yaml` file with the following command:
-
-```bash
-make generate-values LOCAL=false
+basehub/values-base.yaml            shared by every environment
+basehub/values-<environment>.yaml   what makes this environment different
 ```
 
-To deploy the JupyterHub, run the following command:
+| Environment | File | Where it runs |
+|---|---|---|
+| `local` | `values-local.yaml` | kind, on your machine |
+| `dev` | `values-dev.yaml` | per-pull-request previews |
+| `staging` | `values-staging.yaml` | `staging` namespace on the production cluster |
+| `production` | `values-production.yaml` | `production` namespace on the production cluster |
+
+Helm merges the two. Dictionaries merge key by key, but **lists are replaced whole**,
+so an environment that needs to change one entry of a list must restate that entire
+list. This applies to `proxy.https.hosts` and to the singleuser volume mounts.
+
+To change the title, the support address, resource limits, hostnames, the session
+lifetime, or which features are enabled, edit the relevant values file and open a pull
+request. The change is then reviewed, rendered in CI, and recorded in git.
+
+### Secrets and variables kept in GitHub
+
+A short list — everything else lives in the values files above. **Each environment has
+exactly one secret**; every other entry is an identifier, and the reasoning for that is
+below the tables.
+
+Scope follows whether the value differs between environments.
+
+**Repository scope** (Settings → Secrets and variables → Actions) — the only two that never vary:
+
+| Name | Kind | Value |
+|---|---|---|
+| `AZURE_TENANT_ID` | variable | `56b508b4-59b6-40c5-9839-6c4498d10fb9` |
+| `AZURE_SUBSCRIPTION_ID` | variable | `a2b00ada-7fb9-4e4f-8648-03f83044441a` |
+
+They are repository-scoped because holding one copy beats holding three that can drift apart.
+GitHub resolves environment over repository, so an environment that ever needed a different
+subscription can set its own and it wins.
+
+**Everything else is environment scope** (Settings → Environments → *name*). Expand the
+environment you are setting up:
+
+<details>
+<summary><b>production</b></summary>
+
+| Name | Kind | Value |
+|---|---|---|
+| `OAUTH_CLIENT_SECRET` | **secret** | from the `aiidalab-demo-production` OAuth app |
+| `OAUTH_CLIENT_ID` | variable | `ec9145436c332e45df0a` |
+| `OAUTH_CALLBACK_URL` | variable | `https://aiidalab-demo.materialscloud.io/hub/oauth_callback` |
+| `AZURE_CLIENT_ID` | variable | `930b3bc4-8b2b-4de3-99a7-972b2a2bf7c8` (`aiidalab-demo-server-sp`) |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-server` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `demo-server-production` |
+
+</details>
+
+<details>
+<summary><b>staging</b></summary>
+
+Staging runs in its own namespace **on the production cluster**, so the resource group and
+cluster are production's. Its identity must therefore be scoped to the `staging` namespace
+rather than the cluster, or a staging deploy could reach production.
+
+| Name | Kind | Value |
+|---|---|---|
+| `OAUTH_CLIENT_SECRET` | **secret** | from the `aiidalab-demo-staging` OAuth app |
+| `OAUTH_CLIENT_ID` | variable | from the same app |
+| `OAUTH_CALLBACK_URL` | variable | `https://staging-demo.aiidalab.io/hub/oauth_callback` |
+| `AZURE_CLIENT_ID` | variable | *to be created* — staging has no app registration yet |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-server` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `demo-server-production` |
+
+</details>
+
+<details>
+<summary><b>dev</b> (per-pull-request previews)</summary>
+
+Previews use `DummyAuthenticator`, so there are no OAuth settings at all: a GitHub OAuth app
+has one callback URL and no wildcards, so a per-PR hostname could never complete a login.
+The OAuth path is exercised on staging instead.
+
+| Name | Kind | Value |
+|---|---|---|
+| `DUMMY_AUTH_PASSWORD` | **secret** | *choose one* — these URLs are public and a login costs a pod, so not `demo` |
+| `AZURE_CLIENT_ID` | variable | *to be created* — its own identity, with no role outside the dev resource group |
+| `AZURE_RESOURCE_GROUP` | variable | *to be created* |
+| `AZURE_KUBERNETES_CLUSTER` | variable | *to be created* |
+
+The teardown sweeper uses a **second, destructive-only** identity in a separate, unprotected
+environment, so that cleanup is not blocked behind the deploy approval.
+
+</details>
+
+The rest are identifiers, not credentials. An OAuth client ID is visible in the browser's
+address bar during login; a callback URL is a public address; and the Azure IDs name a
+tenant, a subscription and an app registration. None of them grants access on its own —
+CI authenticates to Azure over OIDC, where the trust comes from a federated credential
+that names this repository and environment, not from knowing an ID.
+
+Storing them as secrets is not more secure, and it costs something real: GitHub will not
+show you a secret's value again after you save it, so a wrong one can only be replaced,
+never checked. That is worth paying for a credential, and not worth paying for a GUID.
+
+Set the environment-scoped ones at Settings → Environments → `production` / `staging`, and
+the two repository-scoped ones at Settings → Secrets and variables → Actions.
+
+Do not put anything else at repository scope. A repository variable applies to every
+environment at once, which is how a value meant for production silently reaches staging —
+and how the configuration came to be spread across two pages in the first place.
+
+The OAuth apps live in the `aiidalab` organisation, named `aiidalab-demo-production` and
+`aiidalab-demo-staging`. `OAUTH_CALLBACK_URL` must name the canonical host for that
+environment — the first entry of `proxy.https.hosts` in its values file — because the
+`oauth_state` cookie is host-scoped, and a login begun on a different host comes back
+without it and JupyterHub answers **400: Bad Request**.
+
+`OAUTH_CLIENT_SECRET` is passed to Helm on the command line by `deploy.sh` and is never
+written to a file.
+
+## Deploy
 
 ```bash
-./deploy.sh
+ENVIRONMENT=production ./deploy.sh
 ```
 
-If the namespace does not exist, it will be created.
+`ENVIRONMENT` picks the values file, and the namespace and Helm release name default
+to it. Override them if needed — pull-request previews use `NAMESPACE=pr-42`:
 
-The IP address of proxy-public service can be retrieved with the following command:
+```bash
+ENVIRONMENT=dev NAMESPACE=pr-42 RELEASE=pr-42 ./deploy.sh
+```
+
+The namespace is created if it does not exist. In CI this same script runs from
+`.github/workflows/deploy-to-aks.yml`, with the secrets above supplied from the
+GitHub environment.
+
+The external IP of the proxy can be retrieved with:
 
 ```bash
 kubectl get svc proxy-public -n <namespace>
@@ -269,6 +383,18 @@ proxy:
 
 ## Local deployment for development
 
+> **Note.** The `make` targets below still render `basehub/values.yaml` from the deprecated
+> `basehub/values.yaml.j2`. Every *deployed* environment now uses the committed values files
+> described under [Configuration](#configuration) instead. Editing the Jinja template affects
+> `make up` and nothing else. The two will be unified by pointing the Makefile at
+> `-f values-base.yaml -f values-local.yaml`; until then, to deploy the same configuration CI
+> uses, run:
+>
+> ```bash
+> ENVIRONMENT=local NAMESPACE=local ./deploy.sh
+> ```
+
+
 For quick iteration on the demo server UI (templates, static assets, chart wiring), you can deploy the Helm chart to a local Kubernetes cluster (recommended: [kind](https://kind.sigs.k8s.io/)).
 
 ### Prerequisites
@@ -294,6 +420,10 @@ python3 -m pip install -r requirements.txt
 ```
 
 2. Create a `.env` file (or export variables in your shell). For GitHub OAuth (see **Note** below) you typically need:
+
+   *Only the `make` path needs these.* `ENVIRONMENT=local ./deploy.sh` uses
+   `values-local.yaml`, which logs in with any username and the password `demo` — no OAuth
+   app required.
 
 - `OAUTH_CLIENT_ID`
 - `OAUTH_CLIENT_SECRET`

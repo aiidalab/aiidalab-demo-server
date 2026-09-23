@@ -1,3 +1,19 @@
+{#-
+  DEPRECATED — no deployment uses this template any more.
+
+  Configuration now lives in committed values files:
+      basehub/values-base.yaml  +  basehub/values-<environment>.yaml
+  rendered by neither Jinja nor jinja2-cli; helm merges them directly.
+  See README.md, "Configuration".
+
+  This file survives only because `make generate-values` still renders it for
+  local development, and the Makefile is not being changed yet (pending a
+  conversation with its author). Editing this file affects `make up` and
+  NOTHING ELSE — not staging, not production.
+
+  To finish the migration, point the Makefile at
+  `-f values-base.yaml -f values-local.yaml` and delete this file.
+-#}
 {%- set LOCAL = (environ('LOCAL') or 'false')|lower == 'true' -%}
 {%- set STAGING = (environ('K8S_NAMESPACE') or 'production') == 'staging' -%}
 {%- set INCLUDE_POLICIES = (environ('INCLUDE_POLICIES') or 'false')|lower == 'true' -%}

@@ -1,0 +1,60 @@
+---
+# Production. Layers on values-base.yaml.
+# OAuth credentials are injected at deploy time.
+
+jupyterhub:
+    proxy:
+        https:
+            enabled: true
+            # Every DNS name pointing here. A host missing from this list gets no
+            # certificate, and sniStrict means the browser sees a TLS error rather
+            # than a redirect.
+            #
+            # The FIRST host is the canonical one. Adding a host here means also
+            # adding it to the redirect regex below, otherwise it will serve the site
+            # directly, logins from it will fail with 400, and nothing will say why.
+            hosts:
+                - aiidalab-demo.materialscloud.io
+                - demo.aiidalab.io
+            letsencrypt:
+                contactEmail: aiidalab@materialscloud.org
+        # The GitHub app's callback URL lives on one host and the oauth_state cookie
+        # is host-scoped, so a login begun on another host returns without it and
+        # JupyterHub answers 400. Redirect the aliases to the canonical host at the
+        # TLS proxy, before any request reaches JupyterHub. The canonical host here
+        # must match the host in the OAUTH_CALLBACK_URL variable.
+        traefik:
+            extraDynamicConfig:
+                http:
+                    middlewares:
+                        canonical-host:
+                            redirectRegex:
+                                # Every host above EXCEPT the canonical one, alternated.
+                                regex: '^https?://(demo\.aiidalab\.io)/(.*)'
+                                replacement: 'https://aiidalab-demo.materialscloud.io/${2}'
+                                # 302, not 301: browsers cache 301s ~forever, which
+                                # would outlive a change of canonical host.
+                                permanent: false
+                    routers:
+                        default:
+                            middlewares: [hsts, scheme, canonical-host]
+
+    singleuser:
+        image:
+            pullPolicy: Always
+        extraEnv:
+            CONTAINER_LIFETIME: '12:00:00'
+        cpu:
+            guarantee: 1.5
+            limit: 2
+        memory:
+            guarantee: 5G
+            limit: 5G
+
+    hub:
+        db:
+            pvc:
+                storageClassName: default
+        config:
+            JupyterHub:
+                authenticator_class: github
