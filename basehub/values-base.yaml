@@ -85,6 +85,13 @@ jupyterhub:
                     - mikibonacci
                     - giovannipizzi
                     - edan-bainglass
+                # Accounts that ran a cryptominer on production (Sept 2026).
+                # Deleting them in the admin panel is not enough: OAuth re-creates them on the next login.
+                blocked_users:
+                    - brennerc331
+                    - emullins2
+                    - rebeccacedwards39
+                    - rlombard33
             JupyterHub:
                 # Values read by the custom page templates. Overridden per environment.
                 template_vars:

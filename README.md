@@ -532,7 +532,7 @@ rather than the cluster, or a staging deploy could reach production.
 | `OAUTH_CLIENT_SECRET` | **secret** | from the `aiidalab-demo-staging` OAuth app |
 | `OAUTH_CLIENT_ID` | variable | from the same app |
 | `OAUTH_CALLBACK_URL` | variable | `https://staging-demo.aiidalab.io/hub/oauth_callback` |
-| `AZURE_CLIENT_ID` | variable | *to be created* — staging has no app registration yet |
+| `AZURE_CLIENT_ID` | variable | `885f29bd-b0de-4640-8593-32df45a2eb59` (`aiidalab-demo-staging-sp`) |
 | `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-server` |
 | `AZURE_KUBERNETES_CLUSTER` | variable | `demo-server-production` |
 
@@ -582,6 +582,41 @@ without it and JupyterHub answers **400: Bad Request**.
 
 `OAUTH_CLIENT_SECRET` is passed to Helm on the command line by `deploy.sh` and is never
 written to a file.
+
+### Azure roles for the CI identities
+
+The cluster uses Azure RBAC for Kubernetes Authorization, so what a CI identity may do in
+the cluster is set by Azure role assignments, not Kubernetes RoleBindings. Each identity needs
+two roles: one to fetch a kubeconfig, and one to act inside the cluster.
+
+| Identity | Role | Scope |
+|---|---|---|
+| production `aiidalab-demo-server-sp` | `Azure Kubernetes Service Cluster User Role` | cluster |
+| | `Azure Kubernetes Service RBAC Admin` | cluster |
+| staging `aiidalab-demo-staging-sp` | `Azure Kubernetes Service Cluster User Role` | cluster |
+| | `Azure Kubernetes Service RBAC Admin` | `namespaces/staging` |
+
+**Use `RBAC Admin`, not `RBAC Writer`.** Writer has no rights on Roles or RoleBindings, and
+the chart creates both (for the hub, the TLS proxy and the image pre-puller), so
+`helm upgrade` fails with `cannot get resource "roles"` or `"clusterroles"`.
+
+Staging's Admin role stops at its namespace, so staging cannot manage the user-scheduler's
+ClusterRole. That is why `values-staging.yaml` disables the user-scheduler. Do not work around
+it by granting cluster-scoped rights: an identity that can create ClusterRoleBindings can make
+itself cluster-admin and reach production.
+
+```bash
+CLUSTER=$(az aks show -g aiidalab-demo-server -n demo-server-production --query id -o tsv)
+
+az role assignment create --role "Azure Kubernetes Service RBAC Admin" \
+    --assignee 930b3bc4-8b2b-4de3-99a7-972b2a2bf7c8 --scope "$CLUSTER"
+az role assignment create --role "Azure Kubernetes Service RBAC Admin" \
+    --assignee 885f29bd-b0de-4640-8593-32df45a2eb59 --scope "$CLUSTER/namespaces/staging"
+```
+
+Admins get kubectl access through the `AiiDAlab Admins` group, which holds
+`Azure Kubernetes Service RBAC Cluster Admin` on the cluster. Subscription Owner does **not**
+grant kubectl access on its own.
 
 ## Deploy
 
