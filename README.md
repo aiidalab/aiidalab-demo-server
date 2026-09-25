@@ -99,8 +99,6 @@ OS disks need, and those are what make a stopped cluster nearly free.
 Note the network layout differs from production's: here `SERVICE_CIDR` is outside
 `VNET_PREFIX`, which is what Azure actually asks for.
 
-The ingress IP and DNS zone already exist — see [Ingress and DNS](#5-ingress-and-dns).
-
 </details>
 
 ### 2. Resource group and network
