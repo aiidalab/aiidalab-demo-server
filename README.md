@@ -47,6 +47,7 @@ SUBNET=aiidalab-demo-subnet;     SUBNET_PREFIX=10.240.0.0/16
 SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
 SYSTEM_VM=Standard_D2s_v5;       SYSTEM_COUNT=1
 USER_VM=Standard_D8s_v5;         USER_MIN=1; USER_MAX=7
+OS_DISK_TYPE=Managed;            OS_DISK_GB=128
 NETWORKING_RG=aiidalab-networking
 DNS_ZONE=aiidalab.io;            DNS_RECORD=demo
 ```
@@ -88,6 +89,7 @@ VNET=aiidalab-dev-vnet;          VNET_PREFIX=10.240.0.0/16
 SUBNET=aiidalab-dev-subnet;      SUBNET_PREFIX=10.240.0.0/20
 SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
 SYSTEM_VM=Standard_D2ds_v5;      SYSTEM_COUNT=1
+OS_DISK_TYPE=Ephemeral;          OS_DISK_GB=64
 NETWORKING_RG=aiidalab-networking
 INGRESS_IP=20.163.208.33
 DNS_ZONE=aiidalab.xyz;           DNS_RECORD='*.demo'
@@ -126,7 +128,7 @@ az aks create \
    --enable-managed-identity \
    --enable-aad --enable-azure-rbac \
    --node-count "$SYSTEM_COUNT" --node-vm-size "$SYSTEM_VM" \
-   --node-osdisk-type Ephemeral \
+   --node-osdisk-type "$OS_DISK_TYPE" --node-osdisk-size "$OS_DISK_GB" \
    --network-plugin azure --network-policy azure \
    --service-cidr "$SERVICE_CIDR" --dns-service-ip "$DNS_SERVICE_IP" \
    --vnet-subnet-id "$SUBNET_ID" \
@@ -134,11 +136,18 @@ az aks create \
    --output none
 ```
 
-Three things fail quietly if omitted. `--enable-aad --enable-azure-rbac` must be set at
-creation, because enabling them later invalidates every existing kubeconfig. Without
-`--node-osdisk-type Ephemeral` a stopped cluster still bills for its OS disks. And
-`--enable-oidc-issuer --enable-workload-identity` is what later lets cert-manager hold an Azure
-identity — a pod cannot borrow the cluster's own.
+`--enable-aad --enable-azure-rbac` must be set at creation: enabling them later invalidates
+every existing kubeconfig. `--enable-oidc-issuer --enable-workload-identity` is what later lets
+cert-manager hold an Azure identity, since a pod cannot borrow the cluster's own. Both fail
+quietly if omitted — nothing breaks until much later.
+
+**`OS_DISK_TYPE=Ephemeral` constrains `OS_DISK_GB`.** An ephemeral OS disk lives on the VM's
+local temp disk, so it has to fit: `Standard_D2ds_v5` offers 75 GiB, while AKS defaults to
+asking for 128 GiB. Leave the default and creation fails outright with
+`VMCannotFitEphemeralOSDisk`. 64 GiB fits comfortably and is ample for a node.
+
+Ephemeral is worth this fuss only where the cluster sleeps — a stopped cluster still bills for
+managed OS disks. Production keeps `Managed`.
 
 Production also has a **user node pool** — the pool that actually serves users:
 
