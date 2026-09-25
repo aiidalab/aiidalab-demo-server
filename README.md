@@ -60,6 +60,8 @@ USER_VM=Standard_D8s_v5;         USER_MIN=1; USER_MAX=7
 OS_DISK_TYPE=Managed;            OS_DISK_GB=128
 NETWORKING_RG=aiidalab-networking
 DNS_ZONE=aiidalab.io;            DNS_RECORD=demo
+CI_ROLE="Azure Kubernetes Service RBAC Writer"
+CI_SCOPE_SUFFIX="""
 ```
 
 > ⚠️ Its `SERVICE_CIDR` sits **inside** `VNET_PREFIX`. Azure asks that they not overlap; it
@@ -79,6 +81,8 @@ ENV=staging
 RG=aiidalab-demo-server          # production's
 CLUSTER=demo-server-production   # production's
 NAMESPACE=staging
+CI_ROLE="Azure Kubernetes Service RBAC Writer"
+CI_SCOPE_SUFFIX="/namespaces/staging"
 ```
 
 Its CI identity gets `Azure Kubernetes Service RBAC Writer` on
@@ -108,6 +112,8 @@ OS_DISK_TYPE=Ephemeral;          OS_DISK_GB=64
 NETWORKING_RG=aiidalab-networking
 INGRESS_IP=20.163.208.33
 DNS_ZONE=aiidalab.xyz;           DNS_RECORD='*.demo'
+CI_ROLE="Azure Kubernetes Service RBAC Cluster Admin"
+CI_SCOPE_SUFFIX="""
 ```
 
 The `d` in `D2ds_v5` is load-bearing — only `d` sizes have the local temp disk that ephemeral
@@ -233,13 +239,18 @@ CLUSTER_ID=$(az aks show -g "$RG" -n "$CLUSTER" --query id -o tsv)
 
 az role assignment create --assignee "$APP_ID" \
    --role "Azure Kubernetes Service Cluster User Role" --scope "$CLUSTER_ID"
+
+az role assignment create --assignee "$APP_ID" \
+   --role "$CI_ROLE" --scope "${CLUSTER_ID}${CI_SCOPE_SUFFIX}"
 ```
 
-| Environment | Second role | Scope |
+`CI_ROLE` and `CI_SCOPE_SUFFIX` come from the variables block, and differ by environment:
+
+| Environment | `CI_ROLE` | `CI_SCOPE_SUFFIX` |
 |---|---|---|
-| production | `Azure Kubernetes Service RBAC Writer` | `$CLUSTER_ID` |
-| staging | `Azure Kubernetes Service RBAC Writer` | `$CLUSTER_ID/namespaces/staging` |
-| dev | `Azure Kubernetes Service RBAC Cluster Admin` | `$CLUSTER_ID` |
+| production | `RBAC Writer` | *(cluster-wide)* |
+| staging | `RBAC Writer` | `/namespaces/staging` |
+| dev | `RBAC Cluster Admin` | *(cluster-wide)* |
 
 Staging's namespace scope is what keeps a staging deploy out of production — it is the whole
 reason staging can share production's cluster.
@@ -253,10 +264,21 @@ only because dev is a cluster of its own, containing nothing but previews.
 > If `staging` is ever deleted, CI cannot bring it back — recreate it with an admin credential
 > first.
 
-Dev also needs a second, destructive-only identity for teardown. Required reviewers apply to
-every job declaring an environment, so a cleanup job sharing `dev` would wait for an approval
-nobody gives, and previews would never be removed. Repeat the steps above with `ENV=dev-cleanup`
-and an unprotected GitHub environment.
+Dev needs a **second identity for teardown**. Required reviewers apply to every job declaring
+an environment, so a cleanup job sharing `dev` would wait for an approval nobody gives, and
+previews would never be removed. Repeat the steps above with `ENV=dev-cleanup`, pointing at an
+*unprotected* GitHub environment.
+
+Its Kubernetes rights end up identical to `dev`'s, because deleting a namespace requires
+Cluster Admin and no lesser role will do. The separation it buys is therefore about **which
+approval gate applies**, not about narrower permissions — worth being clear about, since
+"cleanup identity" suggests otherwise.
+
+> Not settled yet: neither identity can currently **stop or start the cluster**. That is an
+> Azure control-plane action (`Microsoft.ContainerService/managedClusters/start|stop/action`)
+> which none of the AKS RBAC roles grant — it needs Contributor on the cluster, or a custom
+> role with just those two actions. Decide this when the preview workflows are written, since
+> the deploy job wakes the cluster and the sweeper puts it back to sleep.
 
 Finally, so the cluster can adopt the reserved ingress address:
 
