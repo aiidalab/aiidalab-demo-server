@@ -24,6 +24,14 @@ jupyterhub:
             guarantee: 5G
             limit: 5G
 
+    # The user-scheduler is the chart's only cluster-scoped object (a ClusterRole and
+    # its binding). The staging identity can only act inside the `staging` namespace,
+    # so it cannot manage them. Letting it would need a right to create
+    # ClusterRoleBindings, which is a right to make itself cluster-admin.
+    scheduling:
+        userScheduler:
+            enabled: false
+
     hub:
         db:
             pvc:
