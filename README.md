@@ -27,6 +27,10 @@ ssh-keygen -f ssh-key-aiidalab-demo-server
 One procedure for every environment. Set the variables for the one you are building, then
 run the steps below unchanged — they only refer to those variables.
 
+Names derive from `PROJECT` and `ENV` so they cannot drift apart. Production predates that
+and states its names literally; the comments show what the scheme would produce, for whenever
+it is next rebuilt.
+
 This is needed rarely: production already exists, and staging has no cluster of its own.
 
 ### 1. Variables
@@ -39,11 +43,17 @@ useful for rebuilding it, not for running now.
 
 ```bash
 ENV=production
+PROJECT=aiidalab-demo
 LOCATION=eastus
-RG=aiidalab-demo-server
-CLUSTER=demo-server-production
-VNET=aiidalab-demo-vnet;         VNET_PREFIX=10.0.0.0/8
-SUBNET=aiidalab-demo-subnet;     SUBNET_PREFIX=10.240.0.0/16
+
+# Literal, not derived: these predate the naming scheme and cannot be changed
+# without rebuilding the cluster. What they would be called today is in comments.
+RG=aiidalab-demo-server          # ${PROJECT}-${ENV}
+CLUSTER=demo-server-production   # ${PROJECT}-${ENV}
+VNET=aiidalab-demo-vnet          # ${RG}-vnet
+SUBNET=aiidalab-demo-subnet      # ${RG}-subnet
+
+VNET_PREFIX=10.0.0.0/8;          SUBNET_PREFIX=10.240.0.0/16
 SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
 SYSTEM_VM=Standard_D2s_v5;       SYSTEM_COUNT=1
 USER_VM=Standard_D8s_v5;         USER_MIN=1; USER_MAX=7
@@ -82,11 +92,16 @@ out of production.
 
 ```bash
 ENV=dev
+PROJECT=aiidalab-demo
 LOCATION=eastus
-RG=aiidalab-dev
-CLUSTER=aiidalab-dev
-VNET=aiidalab-dev-vnet;          VNET_PREFIX=10.240.0.0/16
-SUBNET=aiidalab-dev-subnet;      SUBNET_PREFIX=10.240.0.0/20
+
+# Derived — four names from two variables, so they cannot drift apart.
+RG=${PROJECT}-${ENV}
+CLUSTER=${PROJECT}-${ENV}
+VNET=${RG}-vnet
+SUBNET=${RG}-subnet
+
+VNET_PREFIX=10.240.0.0/16;       SUBNET_PREFIX=10.240.0.0/20
 SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
 SYSTEM_VM=Standard_D2ds_v5;      SYSTEM_COUNT=1
 OS_DISK_TYPE=Ephemeral;          OS_DISK_GB=64
