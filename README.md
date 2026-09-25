@@ -178,15 +178,19 @@ Dev does not need one: a single system pool is enough for a handful of testers.
 
 ### 4. Access
 
-Grant yourself cluster admin **through Entra**, not the local certificate. Without this,
-`kubectl` returns `Forbidden` even for subscription Owners, because Azure RBAC governs the
-Kubernetes API separately from Azure resource permissions:
+Grant cluster admin **through Entra**, not the local certificate. Without this, `kubectl`
+returns `Forbidden` even for subscription Owners, because Azure RBAC governs the Kubernetes
+API separately from Azure resource permissions.
+
+Assign the **group**, not yourself: a recovery path that depends on one person stops being a
+recovery path the week they are away.
 
 ```bash
+ADMINS_GROUP=$(az ad group list --display-name "AiiDAlab Admins" --query "[0].id" -o tsv)
 CLUSTER_ID=$(az aks show -g "$RG" -n "$CLUSTER" --query id -o tsv)
 
 az role assignment create \
-   --assignee "<your admins group object id>" \
+   --assignee "$ADMINS_GROUP" \
    --role "Azure Kubernetes Service RBAC Cluster Admin" \
    --scope "$CLUSTER_ID"
 
