@@ -340,10 +340,11 @@ cluster identity needs **Network Contributor** on that group. Without the annota
 silently allocates a *different* IP and the DNS record quietly points nowhere.
 
 
-### 7. Ingress controller and certificates
+### 7. Ingress controller and certificates (dev only)
 
-Only needed where many hostnames share one address — that is, dev. Production and staging each
-serve a single host through the chart's own `proxy.https`, and can skip this.
+> **Skip this entirely for production and staging.** They each serve a single host through the
+> chart's own `proxy.https`, which handles its own certificate. Only dev needs this, because
+> many preview hostnames share one address.
 
 Wildcard DNS resolves every `pr-N` name to the same IP, so a per-namespace `LoadBalancer`
 cannot work: they would all contend for one address. Instead one ingress controller owns the
