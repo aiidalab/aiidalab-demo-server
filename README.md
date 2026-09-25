@@ -264,15 +264,30 @@ only because dev is a cluster of its own, containing nothing but previews.
 > If `staging` is ever deleted, CI cannot bring it back — recreate it with an admin credential
 > first.
 
-Dev needs a **second identity for teardown**. Required reviewers apply to every job declaring
-an environment, so a cleanup job sharing `dev` would wait for an approval nobody gives, and
-previews would never be removed. Repeat the steps above with `ENV=dev-cleanup`, pointing at an
-*unprotected* GitHub environment.
+**Dev needs a second federated credential**, for teardown.
 
-Its Kubernetes rights end up identical to `dev`'s, because deleting a namespace requires
-Cluster Admin and no lesser role will do. The separation it buys is therefore about **which
-approval gate applies**, not about narrower permissions — worth being clear about, since
-"cleanup identity" suggests otherwise.
+Required reviewers apply to every *job* that declares an environment, not to deployments as
+such. Teardown needs cluster credentials too — deleting a `pr-N` namespace, stopping the
+cluster overnight — so it must declare an environment as well. Sharing `dev` would leave every
+cleanup job waiting for an approval nobody thinks to give: previews would never be removed and
+the cluster would never sleep.
+
+So there are two GitHub environments — `dev` with required reviewers, `dev-cleanup` without —
+and the credential's subject names the environment, so each needs its own:
+
+```bash
+az ad app federated-credential create --id "$APP_ID" --parameters "{
+  \"name\": \"dev-cleanup\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"repo:aiidalab/aiidalab-demo-server:environment:dev-cleanup\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}"
+```
+
+**One identity, two credentials.** There is no second app registration and no second set of
+role assignments: deleting a namespace requires Cluster Admin, so a teardown identity could
+not be given narrower rights anyway. What the split buys is **a different approval gate**, not
+less privilege.
 
 > Not settled yet: neither identity can currently **stop or start the cluster**. That is an
 > Azure control-plane action (`Microsoft.ContainerService/managedClusters/start|stop/action`)
