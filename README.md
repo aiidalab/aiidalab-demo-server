@@ -61,7 +61,7 @@ OS_DISK_TYPE=Managed;            OS_DISK_GB=128
 NETWORKING_RG=aiidalab-networking
 DNS_ZONE=aiidalab.io;            DNS_RECORD=demo
 CI_ROLE="Azure Kubernetes Service RBAC Writer"
-CI_SCOPE_SUFFIX="""
+CI_SCOPE_SUFFIX=""
 ```
 
 > ⚠️ Its `SERVICE_CIDR` sits **inside** `VNET_PREFIX`. Azure asks that they not overlap; it
@@ -113,7 +113,7 @@ NETWORKING_RG=aiidalab-networking
 INGRESS_IP=20.163.208.33
 DNS_ZONE=aiidalab.xyz;           DNS_RECORD='*.demo'
 CI_ROLE="Azure Kubernetes Service RBAC Cluster Admin"
-CI_SCOPE_SUFFIX="""
+CI_SCOPE_SUFFIX=""
 ```
 
 The `d` in `D2ds_v5` is load-bearing — only `d` sizes have the local temp disk that ephemeral
