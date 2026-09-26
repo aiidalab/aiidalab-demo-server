@@ -689,9 +689,14 @@ No `DUMMY_AUTH_PASSWORD`: teardown deploys nothing.
 
 ⚠️ **Neither environment can stop or start the cluster yet.** That is
 `Microsoft.ContainerService/managedClusters/start|stop/action`, which no AKS RBAC role grants.
-It needs Contributor on the cluster, or a custom role with just those two actions — worth
-preferring the custom role, since Contributor would also let CI delete the cluster. Until this
-is settled the cluster runs continuously, which is the cost the sleep design exists to avoid.
+It needs Contributor on the cluster, or a custom role with just those two actions — prefer the
+custom role, since Contributor would also let CI delete the cluster.
+
+This does not block deploying a preview: the workflow only calls `az aks start` when the
+cluster is not already running, and reading its state is covered by `Cluster User Role`. What
+it blocks is waking a sleeping cluster **automatically**, and the sweeper stopping it again —
+so until it is settled, someone has to start and stop the cluster by hand, and the sleep
+design saves nothing on its own.
 
 </details>
 
