@@ -476,12 +476,24 @@ EOF
 ```
 
 `secretName: wildcard-tls` in namespace `ingress-nginx` is what the controller's
-`default-ssl-certificate` points at, so install cert-manager and issue this **before** the
-controller can serve HTTPS. Watch it with:
+`default-ssl-certificate` points at. Watch it with:
 
 ```bash
 kubectl -n ingress-nginx get certificate wildcard -w
 ```
+
+**Then restart the controller.** It started before this secret existed, logged
+`Error loading custom default certificate … falling back to generated default`, and will keep
+serving a self-signed certificate until it reloads. A `helm upgrade` does not do it — the
+annotations live on the Service, so the pod spec never changes:
+
+```bash
+kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller
+kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller
+```
+
+The ordering is unavoidable: the certificate is issued into the controller's namespace, so the
+controller has to exist first.
 
 Certificates renew at 60 days. A cluster asleep across that window issues a fresh one on the
 next wake, which adds a minute to the first preview after a quiet spell.
