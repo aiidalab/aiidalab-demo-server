@@ -390,6 +390,9 @@ az role assignment create --assignee "$CM_PRINCIPAL" --role "DNS Zone Contributo
    --scope "$(az network dns zone show -g dns-zones -n "$DNS_ZONE" --query id -o tsv)"
 ```
 
+Install cert-manager itself. `jetstack` is simply where the chart is published — cert-manager
+began life there and the repository kept the name.
+
 ```bash
 helm repo add jetstack https://charts.jetstack.io
 helm upgrade --install cert-manager jetstack/cert-manager \
@@ -399,6 +402,21 @@ helm upgrade --install cert-manager jetstack/cert-manager \
    --set serviceAccount.labels."azure\.workload\.identity/use"=true \
    --set-string serviceAccount.annotations."azure\.workload\.identity/client-id"="$CM_CLIENT_ID"
 ```
+
+What those four flags do:
+
+- **`crds.enabled=true`** installs the custom resource definitions — `ClusterIssuer`,
+  `Certificate` and the rest. Without them the next block fails with
+  `the server doesn't have a resource type "clusterissuer"`.
+- **the two `azure.workload.identity/use` labels** tell Azure's workload-identity webhook to
+  inject a projected token into cert-manager's pod. Without them the pod has no way to prove
+  who it is.
+- **the `client-id` annotation** says *which* identity to ask for — the user-assigned identity
+  created just above. It is `--set-string` because a bare `--set` would mangle a value that
+  looks like a number.
+
+These flag names have moved between chart versions. If Helm rejects one, `helm show values
+jetstack/cert-manager | grep -A3 serviceAccount` shows what the installed version expects.
 
 The issuer and the certificate. `SUB` and `DNS_RG` are the subscription and the zone's
 resource group:
