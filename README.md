@@ -378,7 +378,7 @@ cert-manager runs as a pod, and a pod cannot use the cluster's own identity. Giv
 az identity create -g "$RG" -n cert-manager --location "$LOCATION" --output none
 CM_CLIENT_ID=$(az identity show -g "$RG" -n cert-manager --query clientId -o tsv)
 CM_PRINCIPAL=$(az identity show -g "$RG" -n cert-manager --query principalId -o tsv)
-OIDC=$(az aks show -g "$RG" -n "$CLUSTER" --query oidcIssuerProfile.issuerURL -o tsv)
+OIDC=$(az aks show -g "$RG" -n "$CLUSTER" --query oidcIssuerProfile.issuerUrl -o tsv)
 
 az identity federated-credential create \
    --identity-name cert-manager --resource-group "$RG" --name cert-manager \
