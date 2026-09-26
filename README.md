@@ -654,15 +654,44 @@ Previews use `DummyAuthenticator`, so there are no OAuth settings at all: a GitH
 has one callback URL and no wildcards, so a per-PR hostname could never complete a login.
 The OAuth path is exercised on staging instead.
 
+Protect this environment with **required reviewers** — that approval is what gates each push
+to a labelled pull request.
+
 | Name | Kind | Value |
 |---|---|---|
 | `DUMMY_AUTH_PASSWORD` | **secret** | *choose one* — these URLs are public and a login costs a pod, so not `demo` |
-| `AZURE_CLIENT_ID` | variable | *to be created* — its own identity, with no role outside the dev resource group |
-| `AZURE_RESOURCE_GROUP` | variable | *to be created* |
-| `AZURE_KUBERNETES_CLUSTER` | variable | *to be created* |
+| `AZURE_CLIENT_ID` | variable | `9b36e574-9818-4699-af04-88e7c9c8508e` (`aiidalab-demo-dev-sp`) |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-dev` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `aiidalab-demo-dev` |
 
-The teardown sweeper uses a **second, destructive-only** identity in a separate, unprotected
-environment, so that cleanup is not blocked behind the deploy approval.
+</details>
+
+<details>
+<summary><b>dev-cleanup</b> (teardown, no reviewers)</summary>
+
+Required reviewers apply to every *job* declaring an environment, not to deployments as such.
+A teardown job sharing `dev` would wait for an approval nobody gives, so previews would never
+be removed and the cluster would never sleep. Hence a second environment, deliberately
+**unprotected**.
+
+It is the **same identity** — one app registration with a second federated credential for
+`…:environment:dev-cleanup`. Deleting a namespace requires Cluster Admin, so a teardown
+identity could not hold narrower rights anyway; the split buys a different approval gate, not
+less privilege.
+
+| Name | Kind | Value |
+|---|---|---|
+| `AZURE_CLIENT_ID` | variable | `9b36e574-9818-4699-af04-88e7c9c8508e` — same as `dev` |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-dev` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `aiidalab-demo-dev` |
+
+No `DUMMY_AUTH_PASSWORD`: teardown deploys nothing.
+
+⚠️ **Neither environment can stop or start the cluster yet.** That is
+`Microsoft.ContainerService/managedClusters/start|stop/action`, which no AKS RBAC role grants.
+It needs Contributor on the cluster, or a custom role with just those two actions — worth
+preferring the custom role, since Contributor would also let CI delete the cluster. Until this
+is settled the cluster runs continuously, which is the cost the sleep design exists to avoid.
 
 </details>
 
