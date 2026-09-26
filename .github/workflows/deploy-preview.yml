@@ -32,9 +32,10 @@ permissions:
     contents: read
     pull-requests: write
 
+# The cluster and its resource group come from the environment's variables, not
+# from here: a workflow-level `env:` cannot read them, because which environment
+# applies is not known until a job declares one.
 env:
-    CLUSTER: aiidalab-demo-dev
-    CLUSTER_RG: aiidalab-demo-dev
     DOMAIN: demo.aiidalab.xyz
 
 jobs:
@@ -88,9 +89,9 @@ jobs:
               # Sleeps by default to save money. Starting takes 3-5 minutes, so a
               # preview after a quiet spell is slower than one after a recent push.
               run: |
-                  state=$(az aks show -g "$CLUSTER_RG" -n "$CLUSTER" --query powerState.code -o tsv)
+                  state=$(az aks show -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --query powerState.code -o tsv)
                   if [ "$state" != "Running" ]; then
-                      az aks start -g "$CLUSTER_RG" -n "$CLUSTER"
+                      az aks start -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}"
                   fi
 
             - uses: azure/setup-kubectl@v3
@@ -106,7 +107,7 @@ jobs:
 
             - name: Connect to the cluster
               run: |
-                  az aks get-credentials -g "$CLUSTER_RG" -n "$CLUSTER" --overwrite-existing
+                  az aks get-credentials -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --overwrite-existing
                   kubelogin convert-kubeconfig -l azurecli
 
             - name: Deploy
@@ -189,11 +190,11 @@ jobs:
               # just to delete it would cost more than leaving it. The sweeper collects
               # it next time the cluster is running.
               run: |
-                  state=$(az aks show -g "$CLUSTER_RG" -n "$CLUSTER" --query powerState.code -o tsv)
+                  state=$(az aks show -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --query powerState.code -o tsv)
                   if [ "$state" != "Running" ]; then
                       echo "Cluster is $state; leaving pr-${{ github.event.number }} for the sweeper."
                       exit 0
                   fi
-                  az aks get-credentials -g "$CLUSTER_RG" -n "$CLUSTER" --overwrite-existing
+                  az aks get-credentials -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --overwrite-existing
                   kubelogin convert-kubeconfig -l azurecli
                   kubectl delete namespace "pr-${{ github.event.number }}" --ignore-not-found --wait=false
