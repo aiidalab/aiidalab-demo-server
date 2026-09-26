@@ -593,9 +593,22 @@ namespace, which needs another moving part.
     - *Still to do:* cert-manager with an Azure DNS DNS-01 solver, issuing `*.demo.aiidalab.xyz`.
       Needs the cluster, and needs the cluster identity to hold **DNS Zone Contributor** on the
       `aiidalab.xyz` zone.
-10. Dev RG, cluster (`Standard_D2ds_v5`, ephemeral OS disks, Free tier), and two identities:
-    `dev` (deploy, behind required reviewers) and `dev-cleanup` (destructive only).
-11. Ingress controller, with the wildcard as its default certificate.
+10. ✅ **Done 2026-09-26.** RG/cluster `aiidalab-demo-dev` (eastus, `Standard_D2ds_v5`,
+    ephemeral OS disk 64 GiB, Free tier, k8s 1.35, Entra + Azure RBAC + workload identity on).
+    One identity `aiidalab-demo-dev-sp` with two federated credentials (`dev`, `dev-cleanup`),
+    holding Cluster User Role + RBAC Cluster Admin on the cluster.
+11. ✅ **Done 2026-09-26.** ingress-nginx on the reserved IP `20.163.208.33`, cert-manager with
+    a workload-identity DNS-01 solver, and a Let's Encrypt wildcard for `*.demo.aiidalab.xyz`
+    serving as the controller's default certificate. Verified from outside the office network:
+    `https://pr-1.demo.aiidalab.xyz` returns nginx's 404 over a trusted certificate.
+
+    *Four defects in the written procedure, all found by running it:* the ephemeral OS disk
+    must be sized to the VM's temp disk (75 GiB on `D2ds_v5`, against a 128 GiB default);
+    workload-identity labels need `--set-string`, since Kubernetes rejects boolean label
+    values; AKS turns ingress-nginx's `appProtocol` into HTTP probes against `/`, where nginx
+    answers 404 and the node is marked unhealthy — the health-probe path annotation is not
+    optional; and the controller must be restarted after the certificate is issued, because it
+    starts before the secret exists and a `helm upgrade` does not replace the pod.
 12. Preview workflow: label filter, per-push approval, SHA-pinned checkout, concurrency,
     `az aks start`, `--set` the per-PR host and namespace.
 13. Sweeper + the two stop rules — before anyone relies on previews, or the cost model breaks
