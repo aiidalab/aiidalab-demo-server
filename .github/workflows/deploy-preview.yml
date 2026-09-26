@@ -1,0 +1,184 @@
+---
+name: PR preview
+
+# A preview deploys only when a pull request carries the `deploy-preview` label
+# AND an admin approves that specific push. The label decides *which* pull
+# requests raise an approval request; the approval is the gate.
+#
+# Forks cannot deploy: `pull_request` grants them no secrets and no OIDC token.
+# That is deliberate — `pull_request_target` would hand cloud credentials to
+# unreviewed code.
+
+on:
+    pull_request:
+        types: [labeled, unlabeled, synchronize, reopened, closed]
+
+permissions:
+    id-token: write
+    contents: read
+    pull-requests: write
+
+env:
+    CLUSTER: aiidalab-demo-dev
+    CLUSTER_RG: aiidalab-demo-dev
+    DOMAIN: demo.aiidalab.xyz
+
+jobs:
+    preview:
+        name: Deploy preview
+        if: >-
+            github.event.action != 'closed'
+            && github.event.action != 'unlabeled'
+            && github.event.pull_request.head.repo.fork == false
+            && contains(github.event.pull_request.labels.*.name, 'deploy-preview')
+        runs-on: ubuntu-latest
+        environment: dev
+        concurrency:
+            # Cancels pending runs too, so rapid pushes collapse into one approval
+            # for the newest code and nobody approves something already superseded.
+            group: preview-pr-${{ github.event.number }}
+            cancel-in-progress: true
+        steps:
+            - name: Checkout the approved commit
+              uses: actions/checkout@v4
+              with:
+                  # The exact SHA, not refs/pull/N/merge: GitHub recomputes that ref
+                  # when the head moves, so an approved run could otherwise check out
+                  # code pushed after the approval.
+                  ref: ${{ github.event.pull_request.head.sha }}
+
+            - uses: azure/setup-helm@v4
+              with:
+                  version: latest
+
+            - name: Render before spending an approval on it
+              # validate.yml cannot be a `needs:` dependency — it is a separate
+              # workflow — so catch the same class of error cheaply here.
+              run: |
+                  helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
+                  helm dependency build basehub
+                  helm template basehub \
+                      -f basehub/values-base.yaml -f basehub/values-dev.yaml \
+                      --set jupyterhub.ingress.hosts[0]="pr-${{ github.event.number }}.$DOMAIN" \
+                      > /dev/null
+
+            - name: Azure login
+              uses: azure/login@v1
+              with:
+                  client-id: ${{ vars.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ vars.AZURE_TENANT_ID }}
+                  subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Wake the cluster
+              # Sleeps by default to save money. Starting takes 3-5 minutes, so a
+              # preview after a quiet spell is slower than one after a recent push.
+              run: |
+                  state=$(az aks show -g "$CLUSTER_RG" -n "$CLUSTER" --query powerState.code -o tsv)
+                  if [ "$state" != "Running" ]; then
+                      az aks start -g "$CLUSTER_RG" -n "$CLUSTER"
+                  fi
+
+            - uses: azure/setup-kubectl@v3
+              with:
+                  version: 'latest'
+
+            - name: Setup kubelogin
+              uses: azure/use-kubelogin@v1
+              with:
+                  kubelogin-version: 'v0.2.19'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Connect to the cluster
+              run: |
+                  az aks get-credentials -g "$CLUSTER_RG" -n "$CLUSTER" --overwrite-existing
+                  kubelogin convert-kubeconfig -l azurecli
+
+            - name: Deploy
+              env:
+                  ENVIRONMENT: dev
+                  NAMESPACE: pr-${{ github.event.number }}
+                  RELEASE: pr-${{ github.event.number }}
+                  DUMMY_AUTH_PASSWORD: ${{ secrets.DUMMY_AUTH_PASSWORD }}
+              run: |
+                  ./deploy.sh \
+                      --set jupyterhub.ingress.hosts[0]="pr-${{ github.event.number }}.$DOMAIN"
+
+            - name: Wait for the hub
+              run: |
+                  ns=pr-${{ github.event.number }}
+                  kubectl -n "$ns" rollout status deploy/hub --timeout=600s
+                  kubectl -n "$ns" rollout status deploy/proxy --timeout=600s
+
+            - name: Post the URL
+              # Only when the label is first applied, so pushes do not add a comment
+              # each time.
+              if: github.event.action == 'labeled'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh pr comment ${{ github.event.number }} --body \
+                    "Preview: https://pr-${{ github.event.number }}.$DOMAIN
+
+                  Log in with any username and the shared preview password.
+                  It is rebuilt on every approved push, removed when this PR closes or
+                  loses the \`deploy-preview\` label, and the cluster sleeps overnight — so the
+                  first visit after a quiet spell takes a few minutes."
+
+            - name: Diagnostics
+              if: failure()
+              run: |
+                  ns=pr-${{ github.event.number }}
+                  kubectl -n "$ns" get pods -o wide || true
+                  kubectl -n "$ns" describe pods || true
+                  kubectl -n "$ns" get events --sort-by=.lastTimestamp | tail -30 || true
+
+    teardown:
+        name: Remove preview
+        if: >-
+            (github.event.action == 'closed'
+             && contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
+            || (github.event.action == 'unlabeled'
+                && github.event.label.name == 'deploy-preview')
+        # a fork never deployed, so there is nothing to remove
+
+        runs-on: ubuntu-latest
+        # Deliberately NOT `dev`: required reviewers apply to every job declaring an
+        # environment, and a cleanup waiting for an approval nobody gives would leave
+        # previews behind forever.
+        environment: dev-cleanup
+        concurrency:
+            group: teardown-pr-${{ github.event.number }}
+            cancel-in-progress: false
+        steps:
+            - name: Azure login
+              uses: azure/login@v1
+              with:
+                  client-id: ${{ vars.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ vars.AZURE_TENANT_ID }}
+                  subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+            - uses: azure/setup-kubectl@v3
+              with:
+                  version: 'latest'
+
+            - name: Setup kubelogin
+              uses: azure/use-kubelogin@v1
+              with:
+                  kubelogin-version: 'v0.2.19'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Delete the namespace, if the cluster is awake
+              # A stopped cluster costs nothing for an idle namespace, and starting one
+              # just to delete it would cost more than leaving it. The sweeper collects
+              # it next time the cluster is running.
+              run: |
+                  state=$(az aks show -g "$CLUSTER_RG" -n "$CLUSTER" --query powerState.code -o tsv)
+                  if [ "$state" != "Running" ]; then
+                      echo "Cluster is $state; leaving pr-${{ github.event.number }} for the sweeper."
+                      exit 0
+                  fi
+                  az aks get-credentials -g "$CLUSTER_RG" -n "$CLUSTER" --overwrite-existing
+                  kubelogin convert-kubeconfig -l azurecli
+                  kubectl delete namespace "pr-${{ github.event.number }}" --ignore-not-found --wait=false
