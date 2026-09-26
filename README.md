@@ -398,8 +398,8 @@ helm repo add jetstack https://charts.jetstack.io
 helm upgrade --install cert-manager jetstack/cert-manager \
    --namespace cert-manager --create-namespace \
    --set crds.enabled=true \
-   --set podLabels."azure\.workload\.identity/use"=true \
-   --set serviceAccount.labels."azure\.workload\.identity/use"=true \
+   --set-string podLabels."azure\.workload\.identity/use"=true \
+   --set-string serviceAccount.labels."azure\.workload\.identity/use"=true \
    --set-string serviceAccount.annotations."azure\.workload\.identity/client-id"="$CM_CLIENT_ID"
 ```
 
@@ -412,8 +412,11 @@ What those four flags do:
   inject a projected token into cert-manager's pod. Without them the pod has no way to prove
   who it is.
 - **the `client-id` annotation** says *which* identity to ask for — the user-assigned identity
-  created just above. It is `--set-string` because a bare `--set` would mangle a value that
-  looks like a number.
+  created just above.
+
+Labels and annotations use `--set-string`; only `crds.enabled` is a real boolean. A bare
+`--set …=true` makes Helm emit `true` as a YAML boolean, and Kubernetes rejects the manifest:
+`cannot unmarshal bool into Go struct field ObjectMeta.metadata.labels of type string`.
 
 These flag names have moved between chart versions. If Helm rejects one, `helm show values
 jetstack/cert-manager | grep -A3 serviceAccount` shows what the installed version expects.
