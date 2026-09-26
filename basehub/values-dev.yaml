@@ -13,6 +13,25 @@ jupyterhub:
     proxy:
         https:
             enabled: false
+        # Reached through the shared ingress controller, not directly. Left as
+        # the chart's default LoadBalancer, every preview namespace would ask
+        # Azure for a public IP of its own.
+        service:
+            type: ClusterIP
+
+    # Wildcard DNS points every pr-N name at one address, so a LoadBalancer per
+    # namespace cannot work — they would all contend for it. One shared ingress
+    # controller owns the address and routes by Host instead.
+    #
+    # `hosts` is filled at deploy time (`--set jupyterhub.ingress.hosts[0]=...`):
+    # the hostname is per-PR and values files cannot interpolate.
+    #
+    # No `tls` block: the controller holds the shared wildcard as its
+    # default-ssl-certificate, so no namespace needs a copy of the secret.
+    ingress:
+        enabled: true
+        ingressClassName: nginx
+        hosts: []
 
     singleuser:
         image:

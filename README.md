@@ -22,129 +22,494 @@ Generate an SSH key pair if you don't have one already.
 ssh-keygen -f ssh-key-aiidalab-demo-server
 ```
 
-## Create an auto-scaling Kubernetes cluster
+## Creating a cluster
+
+One procedure for every environment. Set the variables for the one you are building, then
+run the steps below unchanged — they only refer to those variables.
+
+Names derive from `PROJECT` and `ENV` so they cannot drift apart. Production predates that
+and states its names literally; the comments show what the scheme would produce, for whenever
+it is next rebuilt.
+
+This is needed rarely: production already exists, and staging has no cluster of its own.
+
+### 1. Variables
+
+<details>
+<summary><b>production</b> — as built, for reference</summary>
+
+Already exists. These are the values it actually has, verified against the live cluster —
+useful for rebuilding it, not for running now.
 
 ```bash
-az group create --name aiidalab-demo-server-rg --location=switzerlandnorth --output table
+ENV=production
+PROJECT=aiidalab-demo
+LOCATION=eastus
+
+# Literal, not derived: these predate the naming scheme and cannot be changed
+# without rebuilding the cluster. What they would be called today is in comments.
+RG=aiidalab-demo-server          # ${PROJECT}-${ENV}
+CLUSTER=demo-server-production   # ${PROJECT}-${ENV}
+VNET=aiidalab-demo-vnet          # ${RG}-vnet
+SUBNET=aiidalab-demo-subnet      # ${RG}-subnet
+
+VNET_PREFIX=10.0.0.0/8;          SUBNET_PREFIX=10.240.0.0/16
+SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
+SYSTEM_VM=Standard_D2s_v5;       SYSTEM_COUNT=1
+USER_VM=Standard_D8s_v5;         USER_MIN=1; USER_MAX=7
+OS_DISK_TYPE=Managed;            OS_DISK_GB=128
+NETWORKING_RG=aiidalab-networking
+DNS_ZONE=aiidalab.io;            DNS_RECORD=demo
+CI_ROLE="Azure Kubernetes Service RBAC Writer"
+CI_SCOPE_SUFFIX=""
 ```
 
-- `aiidalab-demo-server-rg` is the name of the resource group.
+> ⚠️ Its `SERVICE_CIDR` sits **inside** `VNET_PREFIX`. Azure asks that they not overlap; it
+> works today only because the subnet happens to sit elsewhere in that range. Do not copy this
+> layout into a new cluster — use the one in the `dev` block.
 
-Create networkpolicy for the pods to communicate with each other and to the internet.
+</details>
+
+<details>
+<summary><b>staging</b> — no cluster to create</summary>
+
+Staging runs as a **namespace on the production cluster**, so there is nothing to build here.
+Skip to [Configuration](#configuration) and give it its own identity, scoped to that namespace:
 
 ```bash
+ENV=staging
+RG=aiidalab-demo-server          # production's
+CLUSTER=demo-server-production   # production's
+NAMESPACE=staging
+CI_ROLE="Azure Kubernetes Service RBAC Writer"
+CI_SCOPE_SUFFIX="/namespaces/staging"
+```
+
+Its CI identity gets `Azure Kubernetes Service RBAC Writer` on
+`<cluster>/namespaces/staging` and nothing wider — that scope is what keeps a staging deploy
+out of production.
+
+</details>
+
+<details>
+<summary><b>dev</b> — per-pull-request previews</summary>
+
+```bash
+ENV=dev
+PROJECT=aiidalab-demo
+LOCATION=eastus
+
+# Derived — four names from two variables, so they cannot drift apart.
+RG=${PROJECT}-${ENV}
+CLUSTER=${PROJECT}-${ENV}
+VNET=${RG}-vnet
+SUBNET=${RG}-subnet
+
+VNET_PREFIX=10.240.0.0/16;       SUBNET_PREFIX=10.240.0.0/20
+SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
+SYSTEM_VM=Standard_D2ds_v5;      SYSTEM_COUNT=1
+OS_DISK_TYPE=Ephemeral;          OS_DISK_GB=64
+NETWORKING_RG=aiidalab-networking
+DNS_ZONE=aiidalab.xyz;           DNS_RECORD='*.demo'
+CI_ROLE="Azure Kubernetes Service RBAC Cluster Admin"
+CI_SCOPE_SUFFIX=""
+```
+
+The `d` in `D2ds_v5` is load-bearing — only `d` sizes have the local temp disk that ephemeral
+OS disks need, and those are what make a stopped cluster nearly free.
+
+Note the network layout differs from production's: here `SERVICE_CIDR` is outside
+`VNET_PREFIX`, which is what Azure actually asks for.
+
+</details>
+
+### 2. Resource group and network
+
+```bash
+az group create --name "$RG" --location "$LOCATION" --output none
+
 az network vnet create \
-   --resource-group aiidalab-demo-server-rg \
-   --name aiidalab-vnet \
-   --address-prefixes 10.0.0.0/8 \
-   --subnet-name aiidalab-subnet \
-   --subnet-prefix 10.240.0.0/16
-```
+   --resource-group "$RG" --name "$VNET" \
+   --address-prefixes "$VNET_PREFIX" \
+   --subnet-name "$SUBNET" --subnet-prefix "$SUBNET_PREFIX" \
+   --output none
 
-We will now retrieve the application IDs of the VNet and subnet we just created and save them to bash variables.
-
-```bash
-VNET_ID=$(az network vnet show \
-   --resource-group aiidalab-demo-server-rg \
-   --name aiidalab-vnet \
-   --query id \
-   --output tsv)
 SUBNET_ID=$(az network vnet subnet show \
-   --resource-group aiidalab-demo-server-rg \
-   --vnet-name aiidalab-vnet \
-   --name aiidalab-subnet \
-   --query id \
-   --output tsv)
+   --resource-group "$RG" --vnet-name "$VNET" --name "$SUBNET" \
+   --query id --output tsv)
 ```
 
-Create an Azure Active Directory (Azure AD) service principal for use with the cluster, and assign the Contributor role for use with the VNet.
-
-```bash
-SP_PASSWD=$(az ad sp create-for-rbac \
-   --name aiidalab-sp \
-   --role Contributor \
-   --scopes $VNET_ID \
-   --query password \
-   --output tsv)
-SP_ID=$(az ad app list \
-   --filter "displayname eq 'aiidalab-sp'" \
-   --query "[0].appId" \
-   --output tsv)
-```
-
-Time to create the Kubernetes cluster, and enable the auto-scaler at the same time.
+### 3. The cluster
 
 ```bash
 az aks create \
-   --name demo-server \
-   --resource-group aiidalab-demo-server-rg \
-   --ssh-key-value ssh-key-aiidalab-demo-server.pub \
-   --node-count 3 \
-   --node-vm-size Standard_D2s_v3 \
-   --service-principal $SP_ID \
-   --client-secret $SP_PASSWD \
-   --dns-service-ip 10.0.0.10 \
-   --network-plugin azure \
-   --network-policy azure \
-   --service-cidr 10.0.0.0/16 \
-   --vnet-subnet-id $SUBNET_ID \
-   --vm-set-type VirtualMachineScaleSets \
-   --enable-cluster-autoscaler \
-   --min-count 3 \
-   --max-count 6 \
-   --output table
+   --resource-group "$RG" --name "$CLUSTER" --location "$LOCATION" \
+   --tier free \
+   --enable-managed-identity \
+   --enable-aad --enable-azure-rbac \
+   --node-count "$SYSTEM_COUNT" --node-vm-size "$SYSTEM_VM" \
+   --node-osdisk-type "$OS_DISK_TYPE" --node-osdisk-size "$OS_DISK_GB" \
+   --network-plugin azure --network-policy azure \
+   --service-cidr "$SERVICE_CIDR" --dns-service-ip "$DNS_SERVICE_IP" \
+   --vnet-subnet-id "$SUBNET_ID" \
+   --enable-oidc-issuer --enable-workload-identity \
+   --output none
 ```
+
+`--enable-aad --enable-azure-rbac` must be set at creation: enabling them later invalidates
+every existing kubeconfig. `--enable-oidc-issuer --enable-workload-identity` is what later lets
+cert-manager hold an Azure identity, since a pod cannot borrow the cluster's own. Both fail
+quietly if omitted — nothing breaks until much later.
+
+**`OS_DISK_TYPE=Ephemeral` constrains `OS_DISK_GB`.** An ephemeral OS disk lives on the VM's
+local temp disk, so it has to fit: `Standard_D2ds_v5` offers 75 GiB, while AKS defaults to
+asking for 128 GiB. Leave the default and creation fails outright with
+`VMCannotFitEphemeralOSDisk`. 64 GiB fits comfortably and is ample for a node.
+
+Ephemeral is worth this fuss only where the cluster sleeps — a stopped cluster still bills for
+managed OS disks. Production keeps `Managed`.
+
+Production also has a **user node pool** — the pool that actually serves users:
 
 ```bash
-CLUSTER_ID=$(az aks show \
-   --resource-group aiidalab-demo-server-rg \
-   --name demo-server \
-   --query id \
-   --output tsv)
+az aks nodepool add \
+   --resource-group "$RG" --cluster-name "$CLUSTER" --name users \
+   --node-vm-size "$USER_VM" --mode User \
+   --enable-cluster-autoscaler --min-count "$USER_MIN" --max-count "$USER_MAX" \
+   --output none
 ```
 
-Update the service principal to have access to the cluster.
+Dev does not need one: a single system pool is enough for a handful of testers.
+
+### 4. Access
+
+Grant cluster admin **through Entra**, not the local certificate. Without this, `kubectl`
+returns `Forbidden` even for subscription Owners, because Azure RBAC governs the Kubernetes
+API separately from Azure resource permissions.
+
+Assign the **group**, not yourself: a recovery path that depends on one person stops being a
+recovery path the week they are away.
 
 ```bash
-SP_PASSWD=$(az ad sp create-for-rbac \
-   --name aiidalab-sp \
-   --role Contributor \
-   --scopes $CLUSTER_ID $VNET_ID \
-   --query password \
-   --output table)
+ADMINS_GROUP=$(az ad group list --display-name "AiiDAlab Admins" --query "[0].id" -o tsv)
+CLUSTER_ID=$(az aks show -g "$RG" -n "$CLUSTER" --query id -o tsv)
+
+az role assignment create \
+   --assignee "$ADMINS_GROUP" \
+   --role "Azure Kubernetes Service RBAC Cluster Admin" \
+   --scope "$CLUSTER_ID"
+
+az aks get-credentials -g "$RG" -n "$CLUSTER" --overwrite-existing
+kubelogin convert-kubeconfig -l azurecli
+kubectl get ns
 ```
+
+The CI identity for this environment is created separately — see
+[Secrets and variables kept in GitHub](#secrets-and-variables-kept-in-github).
+
+### 5. The CI identity
+
+Each environment deploys as its own app registration, so one environment's pipeline cannot
+use another's credentials. There is no stored secret: GitHub Actions exchanges an OIDC token
+for an Azure one, and the trust comes from a *federated credential* naming this repository and
+environment.
 
 ```bash
-az aks update-credentials \
- --resource-group aiidalab-demo-server-rg \
- --name demo-server \
- --reset-service-principal \
- --service-principal <YourServicePrincipalAppId> \
- --client-secret <NewClientSecret>
+APP_ID=$(az ad app create --display-name "aiidalab-demo-${ENV}-sp" --query appId -o tsv)
+az ad sp create --id "$APP_ID"
+
+az ad app federated-credential create --id "$APP_ID" --parameters "{
+  \"name\": \"${ENV}\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"repo:aiidalab/aiidalab-demo-server:environment:${ENV}\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}"
+
+echo "AZURE_CLIENT_ID = $APP_ID"
 ```
 
-The auto-scaler will scale the number of nodes in the cluster between 3 and 6, based on the CPU and memory usage of the pods.
-It can be updated later with the following command:
+The `subject` must equal the GitHub environment name **exactly**. A mismatch fails with
+`AADSTS70021: No matching federated identity record found`, which names neither side.
+
+Then two roles. The first lets it fetch a kubeconfig; the second decides what it may then do:
 
 ```bash
-az aks update \
-   --name demo-server \
-   --resource-group aiidalab-demo-server-rg \
-   --update-cluster-autoscaler \
-   --min-count <DESIRED-MINIMUM-COUNT> \
-   --max-count <DESIRED-MAXIMUM-COUNT> \
-   --output table
+CLUSTER_ID=$(az aks show -g "$RG" -n "$CLUSTER" --query id -o tsv)
+
+az role assignment create --assignee "$APP_ID" \
+   --role "Azure Kubernetes Service Cluster User Role" --scope "$CLUSTER_ID"
+
+az role assignment create --assignee "$APP_ID" \
+   --role "$CI_ROLE" --scope "${CLUSTER_ID}${CI_SCOPE_SUFFIX}"
 ```
 
-### Customizing the auto-scaler
+`CI_ROLE` and `CI_SCOPE_SUFFIX` come from the variables block, and differ by environment:
 
-The auto-scaler can be customized to scale based on different metrics, such as CPU or memory usage.
-Go to the [Azure portal](https://portal.azure.com/) and navigate to the Kubernetes cluster.
-Under the "Resource" section, select the `VMSS`, and then "Custom autoscale".
-These are two rules applied to the VMSS:
+| Environment | `CI_ROLE` | `CI_SCOPE_SUFFIX` |
+|---|---|---|
+| production | `RBAC Writer` | *(cluster-wide)* |
+| staging | `RBAC Writer` | `/namespaces/staging` |
+| dev | `RBAC Cluster Admin` | *(cluster-wide)* |
 
-- Increase the instance count by 1 when the average CPU usage over 10 minutes is greater than 80%
-- Decrease the instance count by 1 when the average CPU usage over 10 minutes is less than 5%
+Staging's namespace scope is what keeps a staging deploy out of production — it is the whole
+reason staging can share production's cluster.
+
+Dev needs Cluster Admin because previews create and delete `pr-N` namespaces, and **neither
+RBAC Writer nor RBAC Admin can do that**: Writer does not list namespaces among its actions,
+and Admin explicitly excludes `namespaces/write` and `namespaces/delete`. That is tolerable
+only because dev is a cluster of its own, containing nothing but previews.
+
+> The same limitation means a **namespace-scoped identity cannot recreate its own namespace**.
+> If `staging` is ever deleted, CI cannot bring it back — recreate it with an admin credential
+> first.
+
+**Dev needs a second federated credential**, for teardown.
+
+Required reviewers apply to every *job* that declares an environment, not to deployments as
+such. Teardown needs cluster credentials too — deleting a `pr-N` namespace, stopping the
+cluster overnight — so it must declare an environment as well. Sharing `dev` would leave every
+cleanup job waiting for an approval nobody thinks to give: previews would never be removed and
+the cluster would never sleep.
+
+So there are two GitHub environments — `dev` with required reviewers, `dev-cleanup` without —
+and the credential's subject names the environment, so each needs its own:
+
+```bash
+az ad app federated-credential create --id "$APP_ID" --parameters "{
+  \"name\": \"dev-cleanup\",
+  \"issuer\": \"https://token.actions.githubusercontent.com\",
+  \"subject\": \"repo:aiidalab/aiidalab-demo-server:environment:dev-cleanup\",
+  \"audiences\": [\"api://AzureADTokenExchange\"]
+}"
+```
+
+**One identity, two credentials.** There is no second app registration and no second set of
+role assignments: deleting a namespace requires Cluster Admin, so a teardown identity could
+not be given narrower rights anyway. What the split buys is **a different approval gate**, not
+less privilege.
+
+> Not settled yet: neither identity can currently **stop or start the cluster**. That is an
+> Azure control-plane action (`Microsoft.ContainerService/managedClusters/start|stop/action`)
+> which none of the AKS RBAC roles grant — it needs Contributor on the cluster, or a custom
+> role with just those two actions. Decide this when the preview workflows are written, since
+> the deploy job wakes the cluster and the sweeper puts it back to sleep.
+
+Finally, so the cluster can adopt the reserved ingress address:
+
+```bash
+CLUSTER_IDENTITY=$(az aks show -g "$RG" -n "$CLUSTER" --query identity.principalId -o tsv)
+az role assignment create --assignee "$CLUSTER_IDENTITY" \
+   --role "Network Contributor" \
+   --scope "$(az group show -n "$NETWORKING_RG" --query id -o tsv)"
+```
+
+### 6. Ingress and DNS
+
+For **dev the address and the record already exist** — `aiidalab-networking` holds
+`dev-ingress`, and `*.demo.aiidalab.xyz` points at it. Skip the two `create` commands, but
+**still run the `INGRESS_IP=` line**: step 7 needs it, and reading it back from Azure beats
+copying a value that changes whenever the environment is rebuilt.
+
+**Reserve the address before the cluster needs it**, in a resource group that is not the
+cluster's. A public IP created *by* AKS lives in its `MC_*` group and is destroyed with the
+cluster, which leaves the DNS record pointing at an address someone else can claim.
+
+```bash
+az group create --name "$NETWORKING_RG" --location "$LOCATION" --output none
+
+az network public-ip create \
+   --resource-group "$NETWORKING_RG" --name "${ENV}-ingress" \
+   --location "$LOCATION" --sku Standard --allocation-method Static \
+   --output none
+
+INGRESS_IP=$(az network public-ip show -g "$NETWORKING_RG" -n "${ENV}-ingress" --query ipAddress -o tsv)
+```
+
+Point DNS at it. Dev's `DNS_RECORD` is a wildcard, so every `pr-N` preview resolves without a
+new record; production names a single host:
+
+```bash
+az network dns record-set a add-record \
+   --resource-group dns-zones --zone-name "$DNS_ZONE" \
+   --record-set-name "$DNS_RECORD" --ipv4-address "$INGRESS_IP" --ttl 300
+```
+
+For the cluster's load balancer to adopt an IP from another resource group, the service must
+carry `service.beta.kubernetes.io/azure-load-balancer-resource-group: $NETWORKING_RG`, and the
+cluster identity needs **Network Contributor** on that group. Without the annotation AKS
+silently allocates a *different* IP and the DNS record quietly points nowhere.
+
+
+### 7. Ingress controller and certificates (dev only)
+
+> **Skip this entirely for production and staging.** They each serve a single host through the
+> chart's own `proxy.https`, which handles its own certificate. Only dev needs this, because
+> many preview hostnames share one address.
+
+Wildcard DNS resolves every `pr-N` name to the same IP, so a per-namespace `LoadBalancer`
+cannot work: they would all contend for one address. Instead one ingress controller owns the
+address, and each preview gets an `Ingress` that routes by `Host`.
+
+**The controller**, claiming the reserved IP:
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+   --namespace ingress-nginx --create-namespace \
+   --set controller.service.loadBalancerIP="$INGRESS_IP" \
+   --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"="$NETWORKING_RG" \
+   --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"="/healthz" \
+   --set controller.extraArgs.default-ssl-certificate=ingress-nginx/wildcard-tls
+```
+
+**The health-probe annotation is not optional on AKS.** ingress-nginx sets `appProtocol` on its
+service ports, so the Azure cloud provider builds HTTP and HTTPS probes rather than TCP ones —
+and probes `/`, where nginx answers `404` when no Ingress matches. Azure needs a `200`, marks
+the node unhealthy, and every connection to the load balancer simply times out. Nothing in the
+cluster looks wrong: the pod runs, the service has its external IP, the certificate is valid.
+`/healthz` answers `200`.
+
+(`--set controller.service.appProtocol=false` also works, by falling back to TCP probes. A
+`/healthz` check is worth more than "the port is open".)
+
+Without the resource-group annotation AKS looks for the IP in its own node resource group,
+does not find it, and **silently allocates a different one** — the DNS record then points
+nowhere.
+
+`default-ssl-certificate` is what lets one wildcard serve every preview. Without it each
+`pr-N` namespace would need its own copy of the TLS secret, which means another component to
+replicate it.
+
+**cert-manager**, and the wildcard itself. DNS-01 is required: HTTP-01 cannot prove a wildcard.
+
+cert-manager runs as a pod, and a pod cannot use the cluster's own identity. Give it a
+**user-assigned identity** federated to its service account — this is what
+`--enable-workload-identity` above was for:
+
+```bash
+az identity create -g "$RG" -n cert-manager --location "$LOCATION" --output none
+CM_CLIENT_ID=$(az identity show -g "$RG" -n cert-manager --query clientId -o tsv)
+CM_PRINCIPAL=$(az identity show -g "$RG" -n cert-manager --query principalId -o tsv)
+OIDC=$(az aks show -g "$RG" -n "$CLUSTER" --query oidcIssuerProfile.issuerUrl -o tsv)
+
+az identity federated-credential create \
+   --identity-name cert-manager --resource-group "$RG" --name cert-manager \
+   --issuer "$OIDC" \
+   --subject "system:serviceaccount:cert-manager:cert-manager" \
+   --audiences api://AzureADTokenExchange --output none
+
+az role assignment create --assignee "$CM_PRINCIPAL" --role "DNS Zone Contributor" \
+   --scope "$(az network dns zone show -g dns-zones -n "$DNS_ZONE" --query id -o tsv)"
+```
+
+Install cert-manager itself. `jetstack` is simply where the chart is published — cert-manager
+began life there and the repository kept the name.
+
+```bash
+helm repo add jetstack https://charts.jetstack.io
+helm upgrade --install cert-manager jetstack/cert-manager \
+   --namespace cert-manager --create-namespace \
+   --set crds.enabled=true \
+   --set-string podLabels."azure\.workload\.identity/use"=true \
+   --set-string serviceAccount.labels."azure\.workload\.identity/use"=true \
+   --set-string serviceAccount.annotations."azure\.workload\.identity/client-id"="$CM_CLIENT_ID"
+```
+
+What those four flags do:
+
+- **`crds.enabled=true`** installs the custom resource definitions — `ClusterIssuer`,
+  `Certificate` and the rest. Without them the next block fails with
+  `the server doesn't have a resource type "clusterissuer"`.
+- **the two `azure.workload.identity/use` labels** tell Azure's workload-identity webhook to
+  inject a projected token into cert-manager's pod. Without them the pod has no way to prove
+  who it is.
+- **the `client-id` annotation** says *which* identity to ask for — the user-assigned identity
+  created just above.
+
+Labels and annotations use `--set-string`; only `crds.enabled` is a real boolean. A bare
+`--set …=true` makes Helm emit `true` as a YAML boolean, and Kubernetes rejects the manifest:
+`cannot unmarshal bool into Go struct field ObjectMeta.metadata.labels of type string`.
+
+These flag names have moved between chart versions. If Helm rejects one, `helm show values
+jetstack/cert-manager | grep -A3 serviceAccount` shows what the installed version expects.
+
+The issuer and the certificate. `SUB` and `DNS_RG` are the subscription and the zone's
+resource group:
+
+```bash
+SUB=$(az account show --query id -o tsv)
+
+kubectl apply -f - <<EOF
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: aiidalab@materialscloud.org
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+      - dns01:
+          azureDNS:
+            subscriptionID: ${SUB}
+            resourceGroupName: dns-zones
+            hostedZoneName: ${DNS_ZONE}
+            environment: AzurePublicCloud
+            managedIdentity:
+              clientID: ${CM_CLIENT_ID}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard
+  namespace: ingress-nginx
+spec:
+  secretName: wildcard-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+    - "*.demo.${DNS_ZONE}"
+EOF
+```
+
+`secretName: wildcard-tls` in namespace `ingress-nginx` is what the controller's
+`default-ssl-certificate` points at. Watch it with:
+
+```bash
+kubectl -n ingress-nginx get certificate wildcard -w
+```
+
+**Then restart the controller.** It started before this secret existed, logged
+`Error loading custom default certificate … falling back to generated default`, and will keep
+serving a self-signed certificate until it reloads. A `helm upgrade` does not do it — the
+annotations live on the Service, so the pod spec never changes:
+
+```bash
+kubectl -n ingress-nginx rollout restart deploy/ingress-nginx-controller
+kubectl -n ingress-nginx rollout status deploy/ingress-nginx-controller
+```
+
+The ordering is unavoidable: the certificate is issued into the controller's namespace, so the
+controller has to exist first.
+
+Certificates renew at 60 days. A cluster asleep across that window issues a fresh one on the
+next wake, which adds a minute to the first preview after a quiet spell.
+
+**Finally, the chart's side.** `values-dev.yaml` turns off `proxy.https`, so the per-PR host
+reaches the ingress through `jupyterhub.ingress`, with the hostname supplied at deploy time
+because values files cannot interpolate:
+
+```bash
+ENVIRONMENT=dev NAMESPACE=pr-42 RELEASE=pr-42 ./deploy.sh \
+   --set jupyterhub.ingress.hosts[0]=pr-42.demo.aiidalab.xyz
+```
+
+`values-dev.yaml` also sets `proxy.service.type: ClusterIP`. Left at the chart's default,
+every preview namespace would ask Azure for a public IP of its own — which is the thing the
+shared controller exists to avoid.
 
 ## Install kubectl and Helm
 
@@ -289,15 +654,49 @@ Previews use `DummyAuthenticator`, so there are no OAuth settings at all: a GitH
 has one callback URL and no wildcards, so a per-PR hostname could never complete a login.
 The OAuth path is exercised on staging instead.
 
+Protect this environment with **required reviewers** — that approval is what gates each push
+to a labelled pull request.
+
 | Name | Kind | Value |
 |---|---|---|
 | `DUMMY_AUTH_PASSWORD` | **secret** | *choose one* — these URLs are public and a login costs a pod, so not `demo` |
-| `AZURE_CLIENT_ID` | variable | *to be created* — its own identity, with no role outside the dev resource group |
-| `AZURE_RESOURCE_GROUP` | variable | *to be created* |
-| `AZURE_KUBERNETES_CLUSTER` | variable | *to be created* |
+| `AZURE_CLIENT_ID` | variable | `9b36e574-9818-4699-af04-88e7c9c8508e` (`aiidalab-demo-dev-sp`) |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-dev` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `aiidalab-demo-dev` |
 
-The teardown sweeper uses a **second, destructive-only** identity in a separate, unprotected
-environment, so that cleanup is not blocked behind the deploy approval.
+</details>
+
+<details>
+<summary><b>dev-cleanup</b> (teardown, no reviewers)</summary>
+
+Required reviewers apply to every *job* declaring an environment, not to deployments as such.
+A teardown job sharing `dev` would wait for an approval nobody gives, so previews would never
+be removed and the cluster would never sleep. Hence a second environment, deliberately
+**unprotected**.
+
+It is the **same identity** — one app registration with a second federated credential for
+`…:environment:dev-cleanup`. Deleting a namespace requires Cluster Admin, so a teardown
+identity could not hold narrower rights anyway; the split buys a different approval gate, not
+less privilege.
+
+| Name | Kind | Value |
+|---|---|---|
+| `AZURE_CLIENT_ID` | variable | `9b36e574-9818-4699-af04-88e7c9c8508e` — same as `dev` |
+| `AZURE_RESOURCE_GROUP` | variable | `aiidalab-demo-dev` |
+| `AZURE_KUBERNETES_CLUSTER` | variable | `aiidalab-demo-dev` |
+
+No `DUMMY_AUTH_PASSWORD`: teardown deploys nothing.
+
+⚠️ **Neither environment can stop or start the cluster yet.** That is
+`Microsoft.ContainerService/managedClusters/start|stop/action`, which no AKS RBAC role grants.
+It needs Contributor on the cluster, or a custom role with just those two actions — prefer the
+custom role, since Contributor would also let CI delete the cluster.
+
+This does not block deploying a preview: the workflow only calls `az aks start` when the
+cluster is not already running, and reading its state is covered by `Cluster User Role`. What
+it blocks is waking a sleeping cluster **automatically**, and the sweeper stopping it again —
+so until it is settled, someone has to start and stop the cluster by hand, and the sleep
+design saves nothing on its own.
 
 </details>
 

@@ -13,6 +13,12 @@
 #   RELEASE     defaults to $NAMESPACE
 #   ALLOW_ANY_CONTEXT  set to true to deploy 'local' to a non-kind cluster
 #
+# Any further arguments are passed straight to `helm upgrade`. That is how
+# per-pull-request values reach the chart, since values files cannot interpolate:
+#
+#   ENVIRONMENT=dev NAMESPACE=pr-42 ./deploy.sh \
+#       --set jupyterhub.ingress.hosts[0]=pr-42.demo.aiidalab.xyz
+#
 set -euo pipefail
 
 : "${ENVIRONMENT:?ENVIRONMENT must be set (local | dev | staging | production)}"
@@ -80,4 +86,7 @@ secret jupyterhub.hub.config.GitHubOAuthenticator.oauth_callback_url "${OAUTH_CA
 secret jupyterhub.hub.config.DummyAuthenticator.password "${DUMMY_AUTH_PASSWORD:-}"
 
 echo "Deploying '${RELEASE}' (${ENVIRONMENT}) into namespace '${NAMESPACE}' on context '${CONTEXT:-<none>}'"
-helm "${args[@]}" "${RELEASE}" "${CHART}"
+if [[ $# -gt 0 ]]; then
+	echo "  extra helm arguments: $*"
+fi
+helm "${args[@]}" "${RELEASE}" "${CHART}" "$@"
