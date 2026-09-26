@@ -5,12 +5,26 @@ name: PR preview
 # AND an admin approves that specific push. The label decides *which* pull
 # requests raise an approval request; the approval is the gate.
 #
-# Forks cannot deploy: `pull_request` grants them no secrets and no OIDC token.
-# That is deliberate — `pull_request_target` would hand cloud credentials to
-# unreviewed code.
+# `pull_request_target`, not `pull_request`, so that pull requests from forks can
+# be previewed too: `pull_request` grants a fork no secrets and no OIDC token,
+# and this team works from forks.
+#
+# Read this before simplifying anything below. Approving a preview runs the head
+# commit's code on a runner holding an Azure token, so the approval means "run
+# this", not only "show me the page" — glance at whether a pull request touches
+# `deploy.sh`, `.github/workflows/` or `basehub/templates/`, not just the change
+# you were asked to look at. Three things bound it:
+#
+#   * `ref:` below pins the exact approved SHA. A branch name or
+#     refs/pull/N/merge would move when the head moves, and an already-approved
+#     run would then deploy code nobody reviewed. This is the crux of the gate.
+#   * the workflow file comes from the base branch, so a fork can change what is
+#     deployed but not what runs.
+#   * the dev identity can reach the dev cluster and nothing else in the
+#     subscription, which is why dev has a cluster of its own.
 
 on:
-    pull_request:
+    pull_request_target:
         types: [labeled, unlabeled, synchronize, reopened, closed]
 
 permissions:
@@ -29,7 +43,6 @@ jobs:
         if: >-
             github.event.action != 'closed'
             && github.event.action != 'unlabeled'
-            && github.event.pull_request.head.repo.fork == false
             && contains(github.event.pull_request.labels.*.name, 'deploy-preview')
         runs-on: ubuntu-latest
         environment: dev
@@ -46,6 +59,8 @@ jobs:
                   # when the head moves, so an approved run could otherwise check out
                   # code pushed after the approval.
                   ref: ${{ github.event.pull_request.head.sha }}
+                  repository: ${{ github.event.pull_request.head.repo.full_name }}
+                  persist-credentials: false
 
             - uses: azure/setup-helm@v4
               with:
