@@ -358,11 +358,23 @@ helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
    --namespace ingress-nginx --create-namespace \
    --set controller.service.loadBalancerIP="$INGRESS_IP" \
    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"="$NETWORKING_RG" \
+   --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"="/healthz" \
    --set controller.extraArgs.default-ssl-certificate=ingress-nginx/wildcard-tls
 ```
 
-Without that annotation AKS looks for the IP in its own node resource group, does not find it,
-and **silently allocates a different one** — the DNS record then points nowhere.
+**The health-probe annotation is not optional on AKS.** ingress-nginx sets `appProtocol` on its
+service ports, so the Azure cloud provider builds HTTP and HTTPS probes rather than TCP ones —
+and probes `/`, where nginx answers `404` when no Ingress matches. Azure needs a `200`, marks
+the node unhealthy, and every connection to the load balancer simply times out. Nothing in the
+cluster looks wrong: the pod runs, the service has its external IP, the certificate is valid.
+`/healthz` answers `200`.
+
+(`--set controller.service.appProtocol=false` also works, by falling back to TCP probes. A
+`/healthz` check is worth more than "the port is open".)
+
+Without the resource-group annotation AKS looks for the IP in its own node resource group,
+does not find it, and **silently allocates a different one** — the DNS record then points
+nowhere.
 
 `default-ssl-certificate` is what lets one wildcard serve every preview. Without it each
 `pr-N` namespace would need its own copy of the TLS secret, which means another component to
