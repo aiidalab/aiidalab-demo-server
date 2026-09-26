@@ -110,7 +110,6 @@ SERVICE_CIDR=10.0.0.0/16;        DNS_SERVICE_IP=10.0.0.10
 SYSTEM_VM=Standard_D2ds_v5;      SYSTEM_COUNT=1
 OS_DISK_TYPE=Ephemeral;          OS_DISK_GB=64
 NETWORKING_RG=aiidalab-networking
-INGRESS_IP=20.163.208.33
 DNS_ZONE=aiidalab.xyz;           DNS_RECORD='*.demo'
 CI_ROLE="Azure Kubernetes Service RBAC Cluster Admin"
 CI_SCOPE_SUFFIX=""
@@ -306,9 +305,10 @@ az role assignment create --assignee "$CLUSTER_IDENTITY" \
 
 ### 6. Ingress and DNS
 
-For **dev this is already done** — `aiidalab-networking` holds `dev-ingress`
-(`20.163.208.33`) and `*.demo.aiidalab.xyz` already points at it. The steps below are how it
-was made, and what to repeat for another environment.
+For **dev the address and the record already exist** — `aiidalab-networking` holds
+`dev-ingress`, and `*.demo.aiidalab.xyz` points at it. Skip the two `create` commands, but
+**still run the `INGRESS_IP=` line**: step 7 needs it, and reading it back from Azure beats
+copying a value that changes whenever the environment is rebuilt.
 
 **Reserve the address before the cluster needs it**, in a resource group that is not the
 cluster's. A public IP created *by* AKS lives in its `MC_*` group and is destroyed with the
@@ -322,7 +322,7 @@ az network public-ip create \
    --location "$LOCATION" --sku Standard --allocation-method Static \
    --output none
 
-IP=$(az network public-ip show -g "$NETWORKING_RG" -n "${ENV}-ingress" --query ipAddress -o tsv)
+INGRESS_IP=$(az network public-ip show -g "$NETWORKING_RG" -n "${ENV}-ingress" --query ipAddress -o tsv)
 ```
 
 Point DNS at it. Dev's `DNS_RECORD` is a wildcard, so every `pr-N` preview resolves without a
@@ -331,7 +331,7 @@ new record; production names a single host:
 ```bash
 az network dns record-set a add-record \
    --resource-group dns-zones --zone-name "$DNS_ZONE" \
-   --record-set-name "$DNS_RECORD" --ipv4-address "$IP" --ttl 300
+   --record-set-name "$DNS_RECORD" --ipv4-address "$INGRESS_IP" --ttl 300
 ```
 
 For the cluster's load balancer to adopt an IP from another resource group, the service must
