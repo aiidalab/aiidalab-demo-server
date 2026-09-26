@@ -18,8 +18,9 @@ name: PR preview
 #   * `ref:` below pins the exact approved SHA. A branch name or
 #     refs/pull/N/merge would move when the head moves, and an already-approved
 #     run would then deploy code nobody reviewed. This is the crux of the gate.
-#   * the workflow file comes from the base branch, so a fork can change what is
-#     deployed but not what runs.
+#   * the workflow file comes from the base branch, so a fork cannot change the
+#     steps — but it DOES supply `deploy.sh` and the chart that those steps run,
+#     so this is not a sandbox.
 #   * the dev identity can reach the dev cluster and nothing else in the
 #     subscription, which is why dev has a cluster of its own.
 
@@ -127,19 +128,26 @@ jobs:
                   kubectl -n "$ns" rollout status deploy/proxy --timeout=600s
 
             - name: Post the URL
-              # Only when the label is first applied, so pushes do not add a comment
-              # each time.
-              if: github.event.action == 'labeled'
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              # `--repo` is required: the checkout above replaced the working copy with
+              # the pull request's head repository, so without it `gh` would resolve
+              # this number against the fork and comment on the wrong pull request, or
+              # none. `--edit-last --create-if-none` upserts, so running on every
+              # deploy leaves one comment rather than a pile — and a preview whose
+              # first run was cancelled by a push still gets its URL.
               run: |
-                  gh pr comment ${{ github.event.number }} --body \
+                  gh pr comment ${{ github.event.number }} \
+                    --repo "${{ github.repository }}" \
+                    --edit-last --create-if-none --body \
                     "Preview: https://pr-${{ github.event.number }}.$DOMAIN
 
                   Log in with any username and the shared preview password.
-                  It is rebuilt on every approved push, removed when this PR closes or
-                  loses the \`deploy-preview\` label, and the cluster sleeps overnight — so the
-                  first visit after a quiet spell takes a few minutes."
+                  Rebuilt on every approved push, and removed when this pull request
+                  closes or loses the \`deploy-preview\` label.
+
+                  The cluster sleeps when idle, and a sleeping preview is unreachable
+                  until it is deployed again."
 
             - name: Diagnostics
               if: failure()
