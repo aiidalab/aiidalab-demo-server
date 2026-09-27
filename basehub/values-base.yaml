@@ -15,7 +15,7 @@ jupyterhub:
             # released AiiDAlab. Nothing is persisted (storage.type: none, 12h cull)
             # so no session is long enough to be disrupted by an image change.
             name: aiidalab/qe
-            tag: latest
+            tag: edge
         cmd:
             - start-singleuser.sh
         extraEnv:
