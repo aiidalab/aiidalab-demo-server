@@ -609,6 +609,14 @@ namespace, which needs another moving part.
     ephemeral OS disk 64 GiB, Free tier, k8s 1.35, Entra + Azure RBAC + workload identity on).
     One identity `aiidalab-demo-dev-sp` with two federated credentials (`dev`, `dev-cleanup`),
     holding Cluster User Role + RBAC Cluster Admin on the cluster.
+
+    **Amended 2026-09-28: plus the custom role `AKS Cluster Power`** (`managedClusters` read +
+    `start/action` + `stop/action`, assignable within the `aiidalab-demo-dev` RG, assigned at
+    the cluster). Start and stop are control-plane actions that **no AKS RBAC role grants** —
+    those govern the Kubernetes API, not the resource — so the first preview against a stopped
+    cluster failed at "Wake the cluster" with `AuthorizationFailed`, having logged in fine.
+    Contributor would have covered it and also let CI delete the cluster. One assignment serves
+    both credentials, which is a second dividend of the one-identity decision.
 11. ✅ **Done 2026-09-26.** ingress-nginx on the reserved IP `20.163.208.33`, cert-manager with
     a workload-identity DNS-01 solver, and a Let's Encrypt wildcard for `*.demo.aiidalab.xyz`
     serving as the controller's default certificate. Verified from outside the office network:
