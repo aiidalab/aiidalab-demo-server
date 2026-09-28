@@ -63,17 +63,6 @@ jobs:
               with:
                   version: latest
 
-            - name: Render before spending an approval on it
-              # validate.yml cannot be a `needs:` dependency — it is a separate
-              # workflow — so catch the same class of error cheaply here.
-              run: |
-                  helm repo add jupyterhub https://jupyterhub.github.io/helm-chart/
-                  helm dependency build basehub
-                  helm template basehub \
-                      -f basehub/values-base.yaml -f basehub/values-dev.yaml \
-                      --set jupyterhub.ingress.hosts[0]="pr-${{ github.event.number }}.$DOMAIN" \
-                      > /dev/null
-
             - name: Azure login
               uses: azure/login@v1
               with:
