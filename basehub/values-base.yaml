@@ -18,8 +18,6 @@ jupyterhub:
             tag: edge
         cmd:
             - start-singleuser.sh
-        extraEnv:
-            JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
         storage:
             type: none
             extraVolumes:
