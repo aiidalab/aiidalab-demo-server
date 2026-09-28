@@ -18,6 +18,9 @@ jupyterhub:
             tag: edge
         cmd:
             - start-singleuser.sh
+        # The image's NOTEBOOK_ARGS set --NotebookApp.default_url, which jupyter-server
+        # ignores, so without this users land on JupyterLab at /lab.
+        defaultUrl: /apps/apps/home/start.ipynb
         storage:
             type: none
             extraVolumes:
