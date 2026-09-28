@@ -115,8 +115,18 @@ cannot deploy at all — "forks are not previewed; push a branch."
 *Teardown must bypass the gate.* Required reviewers apply to every job declaring the
 environment, so cleanup would wait for an approval nobody gives and the cluster would never
 sleep. Use a **second, destructive-only managed identity** (delete `pr-*` namespaces, stop
-the cluster, nothing else) in an unprotected environment. The scheduled sweeper is the
-**single** teardown path; PR-close cleanup is best-effort.
+the cluster, nothing else) in its own environment, `dev-cleanup`, with no reviewers but
+restricted to `main`.
+
+**Revised 2026-09-28: the scheduled sweeper is the *only* teardown path.** A
+`pull_request: closed` job was written and then dropped. That event's ref is
+`refs/pull/N/merge`, which `dev-cleanup`'s main-only branch policy rejects — so it could
+never have run — and relaxing the policy to let it through would put the destructive
+credential in reach of any workflow file in a pull request. A sweep driven from `main`
+keeps the policy doing its job, and reconciling `pr-*` namespaces against the pull requests
+still open and still labelled also collects what the event could not see: a pull request
+closed while the cluster slept, a run cancelled by the concurrency group, a namespace left
+by a failed deploy.
 
 **Production via `release: published`**, not the `production` branch — one form creates tag
 and notes and auto-generates a changelog. Protect with a tag ruleset *and*
@@ -540,9 +550,11 @@ shows up at `Connect to AKS` with a clear error.
   must match *exactly* or Azure returns `AADSTS70021`, which names neither side. The third is
   a separate coupling (to the filename) but sharing one word removes a thing to get wrong.
   Rename the stray `development` in the old `deploy-pr-to-dev-server.yml` stub.
-- Teardown gets its own GitHub environment, `dev-cleanup`, unprotected — required reviewers
-  apply to every *job* declaring an environment, so a cleanup job sharing `dev` would wait for
-  an approval nobody gives and previews would never be removed.
+- Teardown gets its own GitHub environment, `dev-cleanup`, with no required reviewers —
+  required reviewers apply to every *job* declaring an environment, so a cleanup job sharing
+  `dev` would wait for an approval nobody gives and previews would never be removed. It is
+  not unprotected: a branch policy restricts it to `main`, which is why cleanup has to run
+  from `main` on a schedule rather than off a `pull_request` event.
   **Revised 2026-09-25: one identity, two federated credentials**, not two identities. Deleting
   a namespace requires Cluster Admin, so a teardown identity cannot be given narrower rights —
   the split buys a different approval gate, not less privilege, and a second app registration
@@ -597,6 +609,14 @@ namespace, which needs another moving part.
     ephemeral OS disk 64 GiB, Free tier, k8s 1.35, Entra + Azure RBAC + workload identity on).
     One identity `aiidalab-demo-dev-sp` with two federated credentials (`dev`, `dev-cleanup`),
     holding Cluster User Role + RBAC Cluster Admin on the cluster.
+
+    **Amended 2026-09-28: plus the custom role `AKS Cluster Power`** (`managedClusters` read +
+    `start/action` + `stop/action`, assignable within the `aiidalab-demo-dev` RG, assigned at
+    the cluster). Start and stop are control-plane actions that **no AKS RBAC role grants** —
+    those govern the Kubernetes API, not the resource — so the first preview against a stopped
+    cluster failed at "Wake the cluster" with `AuthorizationFailed`, having logged in fine.
+    Contributor would have covered it and also let CI delete the cluster. One assignment serves
+    both credentials, which is a second dividend of the one-identity decision.
 11. ✅ **Done 2026-09-26.** ingress-nginx on the reserved IP `20.163.208.33`, cert-manager with
     a workload-identity DNS-01 solver, and a Let's Encrypt wildcard for `*.demo.aiidalab.xyz`
     serving as the controller's default certificate. Verified from outside the office network:
@@ -675,5 +695,5 @@ Makefile never did.
    (No registration needed — domain already owned and delegated.)
 2. Static public IPs reserved in a durable resource group.
 3. Dev RG and **two** managed identities: `dev` (OIDC subject `…:environment:dev`, behind
-   required reviewers) and `dev-cleanup` (destructive only, unprotected environment).
+   required reviewers) and `dev-cleanup` (destructive only, no reviewers, restricted to `main`).
 4. ✅ Role assignments done; only the flip itself remains — see wave 3.

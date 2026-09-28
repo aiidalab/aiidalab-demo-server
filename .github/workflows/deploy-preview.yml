@@ -21,7 +21,7 @@ name: PR preview
 
 on:
     pull_request:
-        types: [labeled, unlabeled, synchronize, reopened, closed]
+        types: [labeled, synchronize, reopened]
 
 permissions:
     id-token: write
@@ -38,9 +38,7 @@ jobs:
     preview:
         name: Deploy preview
         if: >-
-            github.event.action != 'closed'
-            && github.event.action != 'unlabeled'
-            && github.event.pull_request.head.repo.fork == false
+            github.event.pull_request.head.repo.fork == false
             && contains(github.event.pull_request.labels.*.name, 'deploy-preview')
         runs-on: ubuntu-latest
         environment: dev
@@ -127,8 +125,8 @@ jobs:
                     "Preview: https://pr-${{ github.event.number }}.$DOMAIN
 
                   Log in with any username and the shared preview password.
-                  Rebuilt on every approved push, and removed when this pull request
-                  closes or loses the \`deploy-preview\` label.
+                  Rebuilt on every approved push, and swept away some time after this
+                  pull request closes or loses the \`deploy-preview\` label.
 
                   The cluster sleeps when idle, and a sleeping preview is unreachable
                   until it is deployed again."
@@ -140,54 +138,3 @@ jobs:
                   kubectl -n "$ns" get pods -o wide || true
                   kubectl -n "$ns" describe pods || true
                   kubectl -n "$ns" get events --sort-by=.lastTimestamp | tail -30 || true
-
-    teardown:
-        name: Remove preview
-        if: >-
-            ((github.event.action == 'closed'
-              && contains(github.event.pull_request.labels.*.name, 'deploy-preview'))
-            || (github.event.action == 'unlabeled'
-                && github.event.label.name == 'deploy-preview'))
-            && github.event.pull_request.head.repo.fork == false
-        # a fork never deployed, so there is nothing to remove
-
-        runs-on: ubuntu-latest
-        # Deliberately NOT `dev`: required reviewers apply to every job declaring an
-        # environment, and a cleanup waiting for an approval nobody gives would leave
-        # previews behind forever.
-        environment: dev-cleanup
-        concurrency:
-            group: teardown-pr-${{ github.event.number }}
-            cancel-in-progress: false
-        steps:
-            - name: Azure login
-              uses: azure/login@v1
-              with:
-                  client-id: ${{ vars.AZURE_CLIENT_ID }}
-                  tenant-id: ${{ vars.AZURE_TENANT_ID }}
-                  subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-
-            - uses: azure/setup-kubectl@v3
-              with:
-                  version: 'latest'
-
-            - name: Setup kubelogin
-              uses: azure/use-kubelogin@v1
-              with:
-                  kubelogin-version: 'v0.2.19'
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            - name: Delete the namespace, if the cluster is awake
-              # A stopped cluster costs nothing for an idle namespace, and starting one
-              # just to delete it would cost more than leaving it. The sweeper collects
-              # it next time the cluster is running.
-              run: |
-                  state=$(az aks show -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --query powerState.code -o tsv)
-                  if [ "$state" != "Running" ]; then
-                      echo "Cluster is $state; leaving pr-${{ github.event.number }} for the sweeper."
-                      exit 0
-                  fi
-                  az aks get-credentials -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --overwrite-existing
-                  kubelogin convert-kubeconfig -l azurecli
-                  kubectl delete namespace "pr-${{ github.event.number }}" --ignore-not-found --wait=false
