@@ -288,11 +288,44 @@ role assignments: deleting a namespace requires Cluster Admin, so a teardown ide
 not be given narrower rights anyway. What the split buys is **a different approval gate**, not
 less privilege.
 
-> Not settled yet: neither identity can currently **stop or start the cluster**. That is an
-> Azure control-plane action (`Microsoft.ContainerService/managedClusters/start|stop/action`)
-> which none of the AKS RBAC roles grant — it needs Contributor on the cluster, or a custom
-> role with just those two actions. Decide this when the preview workflows are written, since
-> the deploy job wakes the cluster and the sweeper puts it back to sleep.
+**Dev also needs to power the cluster** (dev only — nothing else sleeps). The preview job
+wakes it and the sweeper puts it back, but `start` and `stop` are Azure *control-plane*
+actions and **none of the AKS RBAC roles grant them**: those govern the Kubernetes API, not
+the resource holding it. Cluster User and RBAC Cluster Admin above are both silent on
+`Microsoft.ContainerService/managedClusters/start|stop/action`, so without this the preview
+fails at "Wake the cluster" with `AuthorizationFailed` — after logging in successfully, which
+makes it look like something other than a missing role.
+
+Contributor on the cluster would cover it, and a great deal else. Define a custom role with
+exactly those actions instead:
+
+```bash
+cat > /tmp/aks-power.json <<EOF
+{
+  "Name": "AKS Cluster Power",
+  "Description": "Start and stop a managed cluster, nothing else.",
+  "Actions": [
+    "Microsoft.ContainerService/managedClusters/read",
+    "Microsoft.ContainerService/managedClusters/start/action",
+    "Microsoft.ContainerService/managedClusters/stop/action"
+  ],
+  "NotActions": [],
+  "AssignableScopes": ["$(az group show -n "$RG" --query id -o tsv)"]
+}
+EOF
+az role definition create --role-definition /tmp/aks-power.json
+
+az role assignment create --assignee "$APP_ID" \
+   --role "AKS Cluster Power" --scope "$CLUSTER_ID"
+```
+
+Creating a role *definition* needs Owner or User Access Administrator on the subscription; the
+AKS roles above will not do it. A new definition takes a few minutes to become assignable and
+the assignment a few more to propagate, so a preview re-run straight afterwards can still
+return 403.
+
+One assignment covers cleanup too — `dev` and `dev-cleanup` are the same application, so the
+sweeper's `stop` needs nothing further.
 
 Finally, so the cluster can adopt the reserved ingress address:
 
@@ -671,8 +704,11 @@ to a labelled pull request.
 
 Required reviewers apply to every *job* declaring an environment, not to deployments as such.
 A teardown job sharing `dev` would wait for an approval nobody gives, so previews would never
-be removed and the cluster would never sleep. Hence a second environment, deliberately
-**unprotected**.
+be removed and the cluster would never sleep. Hence a second environment, with **no required
+reviewers** — but a branch policy restricting it to `main`, so the destructive credential
+cannot be reached from a pull request's own workflow files. Cleanup therefore runs from
+`main`, on a schedule; a `pull_request`-triggered job could not use this environment at all,
+because that event's ref is `refs/pull/N/merge`.
 
 It is the **same identity** — one app registration with a second federated credential for
 `…:environment:dev-cleanup`. Deleting a namespace requires Cluster Admin, so a teardown
@@ -687,16 +723,11 @@ less privilege.
 
 No `DUMMY_AUTH_PASSWORD`: teardown deploys nothing.
 
-⚠️ **Neither environment can stop or start the cluster yet.** That is
-`Microsoft.ContainerService/managedClusters/start|stop/action`, which no AKS RBAC role grants.
-It needs Contributor on the cluster, or a custom role with just those two actions — prefer the
-custom role, since Contributor would also let CI delete the cluster.
-
-This does not block deploying a preview: the workflow only calls `az aks start` when the
-cluster is not already running, and reading its state is covered by `Cluster User Role`. What
-it blocks is waking a sleeping cluster **automatically**, and the sweeper stopping it again —
-so until it is settled, someone has to start and stop the cluster by hand, and the sleep
-design saves nothing on its own.
+⚠️ **Both environments need the custom `AKS Cluster Power` role** to wake the cluster and to
+put it back to sleep — see [5. The CI identity](#5-the-ci-identity). Without it a preview
+fails at "Wake the cluster" with `AuthorizationFailed` whenever the cluster is stopped, which
+is its normal state, and someone has to run `az aks start` by hand before approving the
+deployment. One assignment serves both, since they are the same application.
 
 </details>
 

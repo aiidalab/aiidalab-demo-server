@@ -32,6 +32,12 @@ jupyterhub:
         enabled: true
         ingressClassName: nginx
         hosts: []
+        # There is no `tls` block here, because the controller holds the shared
+        # wildcard as its default certificate. nginx then serves HTTPS but does
+        # NOT redirect on its own, so without this the login form — and the
+        # shared password with it — can be sent over plaintext.
+        annotations:
+            nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
 
     singleuser:
         image:
@@ -50,6 +56,12 @@ jupyterhub:
             pvc:
                 storageClassName: default
         config:
+            Authenticator:
+                # values-base.yaml names Hub administrators on the Authenticator base
+                # class, which DummyAuthenticator inherits. It checks only the shared
+                # password, so anyone holding it could log in as an admin simply by
+                # typing their username. Previews have no per-user identity at all.
+                admin_users: []
             JupyterHub:
                 authenticator_class: dummy
                 template_vars:

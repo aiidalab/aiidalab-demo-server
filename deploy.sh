@@ -58,6 +58,17 @@ if [[ "${ENVIRONMENT}" == "local" && "${ALLOW_ANY_CONTEXT:-false}" != "true" ]];
 	fi
 fi
 
+# Dev previews authenticate with a shared password and nothing else, and that
+# password is not in the values files — it has to arrive from the environment.
+# `secret` below skips empty values, and DummyAuthenticator with no password
+# configured accepts ANY password, so a missing secret would not fail the deploy:
+# it would publish an open preview.
+if [[ "${ENVIRONMENT}" == "dev" && -z "${DUMMY_AUTH_PASSWORD:-}" ]]; then
+	echo "Refusing to deploy 'dev' without DUMMY_AUTH_PASSWORD." >&2
+	echo "  Previews are publicly reachable; an unset password leaves them open." >&2
+	exit 1
+fi
+
 helm dependency build "${CHART}" >/dev/null
 
 args=(
