@@ -15,7 +15,7 @@ jupyterhub:
             # released AiiDAlab. Nothing is persisted (storage.type: none, 12h cull)
             # so no session is long enough to be disrupted by an image change.
             name: aiidalab/qe
-            tag: edge
+            tag: v26.09.0rc1
         cmd:
             - start-singleuser.sh
         # The image's NOTEBOOK_ARGS set --NotebookApp.default_url, which jupyter-server
