@@ -1,0 +1,198 @@
+---
+name: Sweep previews
+
+# Removes preview namespaces once their pull request is done, and puts the dev
+# cluster back to sleep.
+#
+# This reconciles against desired state rather than reacting to an event: a
+# preview should exist exactly while its pull request is open and still carries
+# the `deploy-preview` label. Anything else is swept. That also collects what a
+# `pull_request: closed` job never could — a pull request closed while the
+# cluster slept, a run cancelled by the concurrency group, a namespace left
+# behind by a failed deploy.
+#
+# It must run from `main` for a second reason. `dev-cleanup` holds the only
+# credential allowed to delete namespaces and stop the cluster, and its branch
+# policy admits `main` alone; a `pull_request`-triggered job carries the ref
+# `refs/pull/N/merge` and is refused outright. Keeping cleanup on a schedule
+# keeps that policy doing its job, instead of relaxing it and leaving the
+# destructive credential in reach of any workflow file under review.
+
+on:
+    schedule:
+        # Hourly, because the *idle* rule is what makes the sleep model cheap: a
+        # nightly stop alone leaves a 09:00 preview running some 18 hours.
+        - cron: '0 * * * *'
+    workflow_dispatch:
+        inputs:
+            dry_run:
+                description: Report what would be removed, change nothing
+                type: boolean
+                default: false
+
+permissions:
+    id-token: write
+    contents: read
+    pull-requests: read
+
+concurrency:
+    # Never two sweeps at once: both would reach the same stop decision, and the
+    # second `az aks stop` would fail against a cluster already stopping.
+    group: sweep-previews
+    cancel-in-progress: false
+
+jobs:
+    sweep:
+        name: Sweep previews
+        runs-on: ubuntu-latest
+        environment: dev-cleanup
+        timeout-minutes: 30
+        steps:
+            - name: Azure login
+              uses: azure/login@v1
+              with:
+                  client-id: ${{ vars.AZURE_CLIENT_ID }}
+                  tenant-id: ${{ vars.AZURE_TENANT_ID }}
+                  subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+            - name: Is the cluster awake?
+              id: power
+              # Nothing to sweep on a stopped cluster, and starting one in order to
+              # tidy it would cost far more than the idle namespaces do. They keep
+              # until the next preview wakes it.
+              run: |
+                  state=$(az aks show \
+                      -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+                      -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" \
+                      --query powerState.code -o tsv)
+                  echo "cluster is $state"
+                  if [ "$state" = "Running" ]; then
+                      echo "running=true" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "running=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - uses: azure/setup-kubectl@v3
+              if: steps.power.outputs.running == 'true'
+              with:
+                  version: 'latest'
+
+            - name: Setup kubelogin
+              if: steps.power.outputs.running == 'true'
+              uses: azure/use-kubelogin@v1
+              with:
+                  kubelogin-version: 'v0.2.19'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Connect to the cluster
+              if: steps.power.outputs.running == 'true'
+              run: |
+                  az aks get-credentials \
+                      -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+                      -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}" --overwrite-existing
+                  kubelogin convert-kubeconfig -l azurecli
+
+            - name: Remove previews whose pull request is done
+              id: sweep
+              if: steps.power.outputs.running == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  REPO: ${{ github.repository }}
+                  DRY_RUN: ${{ inputs.dry_run }}
+              # Deleting the namespace is the whole teardown: `values-dev.yaml`
+              # disables the user-scheduler and the pre-puller, which are the only
+              # cluster-scoped objects the chart would otherwise create, so nothing
+              # survives outside it and no `helm uninstall` is needed. The release
+              # record is a Secret in the namespace and goes with it.
+              run: |
+                  wanted=0
+                  for ns in $(kubectl get namespace \
+                          -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' \
+                      | grep -E '^pr-[0-9]+$' || true); do
+                      n="${ns#pr-}"
+
+                      # A lookup that fails means the API is unreachable or the
+                      # number was never a pull request. Neither is evidence that
+                      # the preview is finished, so keep it and retry next hour —
+                      # a sweeper that deletes on uncertainty deletes live previews
+                      # during an outage.
+                      if ! pr=$(gh pr view "$n" --repo "$REPO" --json state,labels 2>/dev/null) \
+                          || [ -z "$pr" ]; then
+                          echo "$ns: cannot read pull request #$n, keeping"
+                          wanted=$((wanted + 1))
+                          continue
+                      fi
+
+                      state=$(echo "$pr" | jq -r '.state')
+                      labelled=$(echo "$pr" | jq -r '[.labels[].name] | index("deploy-preview") != null')
+
+                      if [ "$state" = "OPEN" ] && [ "$labelled" = "true" ]; then
+                          echo "$ns: #$n open and labelled, keeping"
+                          wanted=$((wanted + 1))
+                      elif [ "$DRY_RUN" = "true" ]; then
+                          echo "$ns: #$n is $state, labelled=$labelled — would delete"
+                      else
+                          echo "$ns: #$n is $state, labelled=$labelled — deleting"
+                          kubectl delete namespace "$ns" --ignore-not-found --wait=false
+                      fi
+                  done
+                  echo "previews still wanted: $wanted"
+                  echo "wanted=$wanted" >> "$GITHUB_OUTPUT"
+
+            - name: Stop the cluster when idle, and nightly regardless
+              if: steps.power.outputs.running == 'true'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  REPO: ${{ github.repository }}
+                  WANTED: ${{ steps.sweep.outputs.wanted }}
+                  DRY_RUN: ${{ inputs.dry_run }}
+              # Two rules. *Idle*: nothing wants the cluster, so nothing is lost.
+              # *Nightly*: a backstop for a pull request left open and labelled for
+              # weeks. The nightly rule only stops the cluster — the namespace
+              # survives, and the next approved push wakes it and redeploys.
+              #
+              # 03:00 is read in Europe/Zurich rather than scheduled in UTC so it
+              # stays 03:00 across daylight saving. That is why the cron above is
+              # hourly and the hour is tested here rather than encoded there.
+              run: |
+                  # A preview that is mid-flight has no namespace yet: the deploy
+                  # job spends 3-5 minutes waking the cluster before `helm` runs. A
+                  # sweep landing in that window would see zero previews and stop
+                  # the cluster underneath it, so a running preview counts as one
+                  # that wants the cluster.
+                  #
+                  # `queued` and `in_progress` only — deliberately NOT `waiting`,
+                  # which is a run held for approval. Those sit for up to 30 days,
+                  # so counting them would let one labelled-but-never-approved pull
+                  # request pin the cluster on indefinitely. A waiting run has not
+                  # started the cluster either, so stopping it loses nothing: the
+                  # approval wakes it again.
+                  busy=$(gh run list --repo "$REPO" \
+                      --workflow deploy-preview.yml --limit 30 --json status \
+                      --jq '[.[] | select(.status == "queued" or .status == "in_progress")] | length')
+
+                  hour=$(TZ=Europe/Zurich date +%H)
+                  reason=""
+                  if [ "$busy" -gt 0 ]; then
+                      echo "keeping the cluster up: $busy preview run(s) still in flight"
+                      exit 0
+                  elif [ "$WANTED" = "0" ]; then
+                      reason="no previews remain"
+                  elif [ "$hour" = "03" ]; then
+                      reason="nightly stop, with $WANTED preview(s) still open"
+                  fi
+
+                  if [ -z "$reason" ]; then
+                      echo "keeping the cluster up: $WANTED preview(s), local hour $hour"
+                      exit 0
+                  fi
+                  if [ "$DRY_RUN" = "true" ]; then
+                      echo "would stop the cluster: $reason"
+                      exit 0
+                  fi
+
+                  echo "stopping the cluster: $reason"
+                  az aks stop \
+                      -g "${{ vars.AZURE_RESOURCE_GROUP }}" \
+                      -n "${{ vars.AZURE_KUBERNETES_CLUSTER }}"
