@@ -671,8 +671,11 @@ to a labelled pull request.
 
 Required reviewers apply to every *job* declaring an environment, not to deployments as such.
 A teardown job sharing `dev` would wait for an approval nobody gives, so previews would never
-be removed and the cluster would never sleep. Hence a second environment, deliberately
-**unprotected**.
+be removed and the cluster would never sleep. Hence a second environment, with **no required
+reviewers** — but a branch policy restricting it to `main`, so the destructive credential
+cannot be reached from a pull request's own workflow files. Cleanup therefore runs from
+`main`, on a schedule; a `pull_request`-triggered job could not use this environment at all,
+because that event's ref is `refs/pull/N/merge`.
 
 It is the **same identity** — one app registration with a second federated credential for
 `…:environment:dev-cleanup`. Deleting a namespace requires Cluster Admin, so a teardown
