@@ -829,8 +829,9 @@ kubectl get svc proxy-public -n <namespace>
 | push to `main` | **staging** | review on the pull request |
 | a published GitHub **release** | **production** | tag ruleset + required reviewers on the environment |
 | `workflow_dispatch` | **staging** only | re-runs a staging deploy without an empty commit |
+| `deploy-preview` label on a pull request | **a dev preview** at `pr-N.demo.aiidalab.xyz` | required reviewers on `dev`, for every push |
 
-All three run `.github/workflows/deploy-to-aks.yml`, which authenticates to Azure with
+The first three run `.github/workflows/deploy-to-aks.yml`, which authenticates to Azure with
 OpenID Connect — no stored Azure credential — and then runs the same `./deploy.sh` you
 would run by hand.
 
@@ -838,6 +839,38 @@ Each environment has its own app registration, so a staging deploy cannot use pr
 identity. The federated credential's subject names the environment exactly
 (`repo:aiidalab/aiidalab-demo-server:environment:staging`), so a workflow that does not
 declare that environment cannot obtain a token at all.
+
+### Pull request previews
+
+Add the `deploy-preview` label to a pull request and `deploy-preview.yml` asks for approval;
+once an administrator approves that push, the branch deploys to the dev cluster as namespace
+`pr-N`, reachable at `https://pr-N.demo.aiidalab.xyz` with dummy authentication and the shared
+password. Every later push re-deploys, and each one needs its own approval. Forks do not
+preview — see the comment at the top of the workflow for why, and what to do instead.
+
+Nothing is removed at merge time. `sweep-previews.yml` runs hourly from `main` and reconciles:
+a namespace survives only while its pull request is **open and still labelled**, and everything
+else is deleted. Closing the pull request or dropping the label is therefore how you retire a
+preview, and both take effect within the hour.
+
+Reconciling rather than reacting to the close event is deliberate — it also collects previews
+that no event would have caught: a pull request closed while the cluster slept, a run cancelled
+when a newer push superseded it, a namespace left behind by a deploy that failed halfway. It
+also has to run from `main`, because the `dev-cleanup` credential is restricted to that branch.
+
+The same job manages the cluster's sleep, which is where the money is:
+
+- **Idle** — no preview is wanted, so it stops. A preview run that is queued or in progress
+  counts as wanting it, since the deploy spends several minutes waking the cluster before the
+  namespace exists.
+- **Nightly** — 03:00 Europe/Zurich, whatever is still open. This only stops the cluster; the
+  namespaces survive and the next approved push brings them back.
+
+A stopped cluster means every preview URL is dead until someone deploys again. That is the
+intended trade, and the bot comment on the pull request says so.
+
+Run it by hand from the Actions tab to sweep early; it takes a `dry_run` input that reports
+what it would delete and changes nothing.
 
 ### Releasing to production
 

@@ -570,6 +570,11 @@ shows up at `Connect to AKS` with a clear error.
   PR. *Note:* GitHub cron is UTC and ignores DST, so `0 1 * * *` is 03:00 in summer and 02:00
   in winter. Harmless at that hour.
 
+  **Implemented 2026-09-28 without the DST caveat:** the cron is hourly and the *sweeper*
+  compares `TZ=Europe/Zurich date +%H` against `03`, so the nightly stop is 03:00 local all
+  year. The hourly tick was needed for the idle rule anyway, so testing the hour inside it
+  costs nothing and removes a footnote.
+
 *Constraint found 2026-09-24 — dev's deploy identity needs Cluster Admin.* Neither
 `Azure Kubernetes Service RBAC Writer` nor `RBAC Admin` can create a namespace: Writer does not
 list namespaces among its dataActions, and Admin explicitly excludes `namespaces/write` and
@@ -631,8 +636,12 @@ namespace, which needs another moving part.
     starts before the secret exists and a `helm upgrade` does not replace the pod.
 12. Preview workflow: label filter, per-push approval, SHA-pinned checkout, concurrency,
     `az aks start`, `--set` the per-PR host and namespace.
-13. Sweeper + the two stop rules — before anyone relies on previews, or the cost model breaks
-    quietly.
+13. ✅ **Done 2026-09-28.** `sweep-previews.yml`: hourly, from `main`, in `dev-cleanup`. Deletes
+    every `pr-N` namespace whose pull request is not both open and labelled, then stops the
+    cluster when none remain or at 03:00 Europe/Zurich. Two guards learned while writing it — a
+    failed `gh pr view` keeps the namespace, so an API outage cannot delete live previews; and
+    the stop counts only `queued`/`in_progress` preview runs, never `waiting`, since a run held
+    for approval can sit for 30 days and would pin the cluster on.
 
 **Wave 5 — production hardening and the record**
 14. Apply the static-IP pattern to production (closes the dangling-DNS exposure `demo` still has).
