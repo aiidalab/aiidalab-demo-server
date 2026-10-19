@@ -15,7 +15,7 @@ jupyterhub:
             # released AiiDAlab. Nothing is persisted (storage.type: none, 12h cull)
             # so no session is long enough to be disrupted by an image change.
             name: aiidalab/qe
-            tag: v26.09.0
+            tag: v26.06.11
         cmd:
             - start-singleuser.sh
         # The image's NOTEBOOK_ARGS set --NotebookApp.default_url, which jupyter-server
@@ -104,9 +104,9 @@ jupyterhub:
                     is_mc_deployment: true
                     support_emails:
                         - aiidalab@materialscloud.org
-                    institution_logo_src: ''
-                    institution_logo_href: ''
-                    institution_logo_alt: ''
+                    institution_logo_src: ""
+                    institution_logo_href: ""
+                    institution_logo_alt: ""
         extraConfig:
             00-logo: |
                 c.JupyterHub.logo_file = "/usr/local/share/jupyterhub/static/external/aiidalab-wide-logo.png"
