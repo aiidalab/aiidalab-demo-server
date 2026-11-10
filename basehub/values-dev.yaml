@@ -43,7 +43,7 @@ jupyterhub:
         image:
             pullPolicy: Always
         extraEnv:
-            CONTAINER_LIFETIME: ''
+            CONTAINER_LIFETIME: '12:00:00'
         cpu:
             guarantee: 0.25
             limit: 1

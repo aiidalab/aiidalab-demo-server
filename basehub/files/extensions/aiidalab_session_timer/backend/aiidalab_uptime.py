@@ -1,11 +1,11 @@
 import re
 import subprocess
 
-from notebook.base.handlers import IPythonHandler
-from notebook.utils import url_path_join
+from jupyter_server.base.handlers import JupyterHandler
+from jupyter_server.utils import url_path_join
 
 
-class UptimeHandler(IPythonHandler):
+class UptimeHandler(JupyterHandler):
     def get(self):
         try:
             output = subprocess.check_output(["ps", "-p", "1", "-o", "etime="])
@@ -18,9 +18,7 @@ class UptimeHandler(IPythonHandler):
 
     @staticmethod
     def _parse_uptime_to_seconds(uptime: str) -> int:
-        # Supports MM:SS, HH:MM:SS, or D-HH:MM:SS formats
-        # Captures days*, hours*, minutes, and seconds -> *optional
-        match = re.match(r"(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)", uptime)
+        match = re.fullmatch(r"(?:(\d+)-)?(?:(\d+):)?(\d+):(\d+)", uptime)
         if not match:
             raise ValueError(f"Unrecognized etime format: {uptime}")
 
@@ -28,7 +26,11 @@ class UptimeHandler(IPythonHandler):
         return int(days) * 86400 + int(hours) * 3600 + int(minutes) * 60 + int(seconds)
 
 
-def load_jupyter_server_extension(nbapp):
-    web_app = nbapp.web_app
-    route = url_path_join(web_app.settings["base_url"], "/uptime")
-    web_app.add_handlers(".*", [(route, UptimeHandler)])
+def _jupyter_server_extension_points():
+    return [{"module": "aiidalab_uptime"}]
+
+
+def _load_jupyter_server_extension(serverapp):
+    web_app = serverapp.web_app
+    route = url_path_join(web_app.settings["base_url"], "uptime")
+    web_app.add_handlers(".*$", [(route, UptimeHandler)])
