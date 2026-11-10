@@ -15,12 +15,9 @@ jupyterhub:
             # released AiiDAlab. Nothing is persisted (storage.type: none, 12h cull)
             # so no session is long enough to be disrupted by an image change.
             name: aiidalab/qe
-            tag: v26.06.10
+            tag: v26.11.0
         cmd:
             - start-singleuser.sh
-        extraEnv:
-            # Required for the backcompatibility with python-3.9 and notebook 6.x images
-            JUPYTERHUB_SINGLEUSER_APP: notebook.notebookapp.NotebookApp
         # The image's NOTEBOOK_ARGS set --NotebookApp.default_url, which jupyter-server
         # ignores, so without this users land on JupyterLab at /lab.
         defaultUrl: /apps/apps/home/start.ipynb
@@ -36,27 +33,40 @@ jupyterhub:
                 - name: etc-jupyter
                   configMap:
                       name: user-etc-jupyter
-                - name: notebook-static-custom
+                - name: aiidalab-session-timer-frontend
                   configMap:
-                      name: notebook-static-custom
-                - name: aiidalab-uptime
+                      name: aiidalab-session-timer-frontend
+                - name: aiidalab-session-timer-backend
                   configMap:
-                      name: aiidalab-uptime
+                      name: aiidalab-session-timer-backend
+                - name: aiidalab-session-timer-config
+                  configMap:
+                      name: aiidalab-session-timer-config
             extraVolumeMounts:
-                - mountPath: /etc/jupyterhub/templates
-                  name: hub-templates
-                - mountPath: /usr/local/share/jupyterhub/static/external
-                  name: hub-external
-                - mountPath: /etc/jupyter
-                  name: etc-jupyter
-                  # The Python version here must match the image's conda Python, or
-                  # custom.js and custom.css silently do not load. Helm replaces whole
-                  # lists, so an environment needing a different path must restate this
-                  # entire block.
-                - mountPath: /opt/conda/lib/python3.9/site-packages/notebook/static/custom
-                  name: notebook-static-custom
-                - mountPath: /opt/conda/etc/jupyter/jupyter_notebook_config.d
-                  name: aiidalab-uptime
+                - name: hub-templates
+                  mountPath: /etc/jupyterhub/templates
+                - name: hub-external
+                  mountPath: /usr/local/share/jupyterhub/static/external
+                - name: etc-jupyter
+                  mountPath: /etc/jupyter
+                # Session timer frontend assets
+                - name: aiidalab-session-timer-frontend
+                  mountPath: /opt/conda/share/jupyter/nbextensions/aiidalab-session-timer
+                # Session timer Python backend
+                - name: aiidalab-session-timer-backend
+                  mountPath: /opt/conda/share/aiidalab/extensions/aiidalab_uptime.py
+                  subPath: aiidalab_uptime.py
+                # Enable the nbclassic frontend extension
+                - name: aiidalab-session-timer-config
+                  mountPath: /opt/conda/etc/jupyter/nbconfig/common.d/aiidalab-session-timer.json
+                  subPath: frontend.json
+                # Enable the Jupyter Server extension
+                - name: aiidalab-session-timer-config
+                  mountPath: /opt/conda/etc/jupyter/jupyter_server_config.d/aiidalab-session-timer.json
+                  subPath: backend.json
+        extraEnv:
+            # This is a custom path, so we include it explicitly
+            PYTHONPATH: /opt/conda/share/aiidalab/extensions
 
     hub:
         readinessProbe:
