@@ -3,9 +3,11 @@ import subprocess
 
 from jupyter_server.base.handlers import JupyterHandler
 from jupyter_server.utils import url_path_join
+from tornado import web
 
 
 class UptimeHandler(JupyterHandler):
+    @web.authenticated
     def get(self):
         try:
             output = subprocess.check_output(["ps", "-p", "1", "-o", "etime="])
