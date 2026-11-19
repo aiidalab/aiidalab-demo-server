@@ -92,7 +92,6 @@ jupyterhub:
             Authenticator:
                 allow_all: true
                 admin_users:
-                    - unkcpz
                     - yakutovicha
                     - mikibonacci
                     - giovannipizzi
