@@ -36,9 +36,21 @@ define(["base/js/namespace", "base/js/utils"], (Jupyter, utils) => {
     return `${hrs}:${mins}:${secs}`;
   };
 
+  const getXsrfToken = () => {
+    const cookie = document.cookie
+      .split("; ")
+      .find((entry) => entry.startsWith("_xsrf="));
+
+    return cookie ? decodeURIComponent(cookie.slice("_xsrf=".length)) : null;
+  };
+
   const fetchJson = async (url) => {
     const response = await fetch(url, {
       credentials: "same-origin",
+      redirect: "error",
+      headers: {
+        "X-XSRFToken": getXsrfToken(),
+      },
     });
 
     if (!response.ok || response.redirected) {

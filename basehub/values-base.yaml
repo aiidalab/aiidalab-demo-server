@@ -54,10 +54,7 @@ jupyterhub:
                   mountPath: /opt/conda/share/jupyter/nbextensions/aiidalab-session-timer
                 # Session timer Python backend
                 - name: aiidalab-session-timer-backend
-                  # The Python version here must match the image's conda Python, or
-                  # custom.js and custom.css silently do not load. Helm replaces whole
-                  # lists, so an environment needing a different path must restate this
-                  # entire block.
+                  # The Python version here must match that in the image's Conda environment
                   mountPath: /opt/conda/lib/python3.12/site-packages/aiidalab_uptime.py
                   subPath: aiidalab_uptime.py
                 # Enable the nbclassic frontend extension
