@@ -36,25 +36,39 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: notebook-static-custom
+  name: aiidalab-session-timer-frontend
 data:
-  {{- (.Files.Glob "files/static/custom/*").AsConfig | nindent 2 }}
+  {{- (.Files.Glob "files/extensions/aiidalab_session_timer/frontend/*").AsConfig | nindent 2 }}
   config.json: |
+    {{- $lifetime := .Values.jupyterhub.singleuser.extraEnv.CONTAINER_LIFETIME | default "" }}
     {
-      "ephemeral": {{ ternary "1" "0" (hasKey .Values.jupyterhub.singleuser.extraEnv "CONTAINER_LIFETIME") }},
-      "lifetime": {{ .Values.jupyterhub.singleuser.extraEnv.CONTAINER_LIFETIME | default "" | quote }}
+      "ephemeral": {{ ne $lifetime "" | toJson }},
+      "lifetime": {{ $lifetime | quote }}
     }
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: aiidalab-uptime
+  name: aiidalab-session-timer-backend
 data:
-  aiidalab_uptime.json: |
+  {{- (.Files.Glob "files/extensions/aiidalab_session_timer/backend/*").AsConfig | nindent 2 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aiidalab-session-timer-config
+data:
+  frontend.json: |
     {
-      "NotebookApp": {
-        "nbserver_extensions": {
-          "notebook.static.custom.aiidalab_uptime": true
+      "load_extensions": {
+        "aiidalab-session-timer/main": true
+      }
+    }
+  backend.json: |
+    {
+      "ServerApp": {
+        "jpserver_extensions": {
+          "aiidalab_uptime": true
         }
       }
     }
