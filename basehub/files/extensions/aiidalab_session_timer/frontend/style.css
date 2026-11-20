@@ -31,3 +31,26 @@
 #culling-timer {
   margin-left: 5px;
 }
+
+/* Adjust nbclassic terminal layout for the session timer. */
+body:has(#terminado-container):has(#culling-countdown) {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body:has(#terminado-container) #culling-countdown,
+body:has(#terminado-container) #header {
+  flex-shrink: 0;
+}
+
+body:has(#terminado-container) #site {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body:has(#terminado-container) #terminado-container {
+  height: 100% !important;
+}
