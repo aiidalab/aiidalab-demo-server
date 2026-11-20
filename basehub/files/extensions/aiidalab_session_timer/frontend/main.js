@@ -117,6 +117,12 @@ define(["base/js/namespace", "base/js/utils"], (Jupyter, utils) => {
 
     header.parentNode.insertBefore(banner, header);
 
+    const observer = new ResizeObserver(() => {
+      window.dispatchEvent(new Event("resize"));
+    });
+
+    observer.observe(banner);
+
     const endTime = Date.now() + remainingSeconds * 1000;
 
     const updateTimer = () => {
